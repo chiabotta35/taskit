@@ -38,6 +38,22 @@
                     {{ form.due_date(id="due_date", type="date") }}
                 </div>
             </div>
+            {% if existing_tasks is defined and existing_tasks %}
+            <div class="form-group">
+                <label>Blocked By <span style="color:var(--text-muted);font-weight:400">(tasks that must finish first)</span></label>
+                <div style="display:flex;flex-wrap:wrap;gap:0.3rem" id="dep-picker">
+                    {% set selected_deps = existing_dep_ids if existing_dep_ids else [] %}
+                    {% for t in existing_tasks %}
+                    <button type="button" class="label-chip {% if t.id|string in selected_deps %}label-selected{% endif %}"
+                            data-id="{{ t.id }}" onclick="toggleDep(this)"
+                            style="--chip-color:var(--danger)">
+                        {{ t.display_id }}
+                    </button>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="blocked_by" id="blocked-by-hidden" value="{{ selected_deps|join(',') if selected_deps else '' }}">
+            </div>
+            {% endif %}
             {% if labels %}
             <div class="form-group">
                 <label>Labels</label>
@@ -67,8 +83,13 @@
 <script>
 function toggleLabel(btn) {
     btn.classList.toggle('label-selected');
-    const selected = [...document.querySelectorAll('.label-chip.label-selected')].map(b => b.dataset.id);
+    const selected = [...document.querySelectorAll('#label-picker .label-chip.label-selected')].map(b => b.dataset.id);
     document.getElementById('labels-hidden').value = selected.join(',');
+}
+function toggleDep(btn) {
+    btn.classList.toggle('label-selected');
+    const selected = [...document.querySelectorAll('#dep-picker .label-chip.label-selected')].map(b => b.dataset.id);
+    document.getElementById('blocked-by-hidden').value = selected.join(',');
 }
 </script>
 {% endblock %}

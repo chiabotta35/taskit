@@ -16,6 +16,7 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_owner = db.Column(db.Boolean, default=False, nullable=False)
     is_active_user = db.Column(db.Boolean, default=True, nullable=False)
+    theme = db.Column(db.String(30), default="dark", nullable=False)
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -137,6 +138,7 @@ class Project(db.Model):
     status = db.Column(
         db.String(20), nullable=False, default="active"
     )
+    prefix = db.Column(db.String(10), nullable=False, default="")
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
@@ -188,6 +190,7 @@ class Task(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    task_number = db.Column(db.Integer, nullable=False, default=0)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, default="")
     status = db.Column(db.String(20), nullable=False, default="todo")
@@ -208,6 +211,12 @@ class Task(db.Model):
 
     comments = db.relationship("Comment", backref="task", lazy="dynamic", cascade="all, delete-orphan")
     creator = db.relationship("User", foreign_keys=[created_by], backref="created_tasks")
+
+    @property
+    def display_id(self):
+        proj = self.project
+        prefix = proj.prefix.upper() if proj and proj.prefix else "T"
+        return f"{prefix}-{self.task_number}"
 
 
 class Comment(db.Model):
@@ -317,6 +326,78 @@ class ActivityLog(db.Model):
     user = db.relationship("User", backref="activities")
 
 
+class Attachment(db.Model):
+    __tablename__ = "attachments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey("tasks.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    stored_name = db.Column(db.String(255), nullable=False)
+    size = db.Column(db.Integer, nullable=False, default=0)
+    mime_type = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    task = db.relationship("Task", backref="attachments")
+    user = db.relationship("User", backref="uploads")
+
+
+class TaskDependency(db.Model):
+    __tablename__ = "task_dependencies"
+
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey("tasks.id"), nullable=False)
+    blocked_by_id = db.Column(db.Integer, db.ForeignKey("tasks.id"), nullable=False)
+
+    task = db.relationship("Task", foreign_keys=[task_id], backref="blocking")
+    blocked_by = db.relationship("Task", foreign_keys=[blocked_by_id], backref="blocks")
+
+    __table_args__ = (
+        db.UniqueConstraint("task_id", "blocked_by_id", name="uq_task_dep"),
+        db.CheckConstraint("task_id != blocked_by_id", name="ck_no_self_dep"),
+    )
+
+
+class RecurringTask(db.Model):
+    __tablename__ = "recurring_tasks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, default="")
+    priority = db.Column(db.String(20), nullable=False, default="medium")
+    assignee_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    interval_days = db.Column(db.Integer, nullable=False, default=7)
+    last_run = db.Column(db.Date, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    project = db.relationship("Project", backref="recurring_tasks")
+    assignee = db.relationship("User", foreign_keys=[assignee_id])
+    creator = db.relationship("User", foreign_keys=[created_by])
+
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    body = db.Column(db.Text, nullable=True)
+    url = db.Column(db.String(300), nullable=True)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    user = db.relationship("User", backref="notifications")
+
+
 def log_activity(project_id, user_id, action, entity_type, entity_id, entity_name, detail=None):
     entry = ActivityLog(
         project_id=project_id,
@@ -326,5 +407,15 @@ def log_activity(project_id, user_id, action, entity_type, entity_id, entity_nam
         entity_id=entity_id,
         entity_name=entity_name,
         detail=detail,
+    )
+    db.session.add(entry)
+
+
+def notify(user_id, title, body=None, url=None):
+    entry = Notification(
+        user_id=user_id,
+        title=title,
+        body=body,
+        url=url,
     )
     db.session.add(entry)

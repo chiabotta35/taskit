@@ -35,10 +35,19 @@ def _ensure_columns(app):
         additions = {
             "tasks": [
                 ("due_date", "DATE"),
+                ("task_number", "INTEGER DEFAULT 0"),
+            ],
+            "projects": [
+                ("prefix", "VARCHAR(10) DEFAULT ''"),
+            ],
+            "users": [
+                ("theme", "VARCHAR(30) DEFAULT 'dark'"),
             ],
         }
         for table, cols in additions.items():
-            existing = {c["name"] for c in inspector.get_columns(table)} if table in inspector.get_table_names() else set()
+            if table not in inspector.get_table_names():
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table)}
             for col_name, col_type in cols:
                 if col_name not in existing:
                     try:
@@ -85,22 +94,32 @@ def create_app():
     from .tasks import tasks_bp
     from .kanban import kanban_bp
     from .webhooks_ui import webhooks_bp
+    from .search import search_bp
+    from .recurring import recurring_bp
+    from .dashboard import dashboard_bp
+    from .gantt import gantt_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(projects_bp)
     app.register_blueprint(tasks_bp)
     app.register_blueprint(kanban_bp)
     app.register_blueprint(webhooks_bp)
+    app.register_blueprint(search_bp)
+    app.register_blueprint(recurring_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(gantt_bp)
 
     @app.route("/")
     def index():
-        return redirect(url_for("projects.list_projects"))
+        return redirect(url_for("dashboard.index"))
 
     @app.context_processor
     def inject_globals():
-        from .models import TASK_STATUSES, TASK_PRIORITIES, PROJECT_STATUSES
+        from .models import TASK_STATUSES, TASK_PRIORITIES, PROJECT_STATUSES, Notification
 
         sidebar_projects = []
+        unread_count = 0
+        notifications = []
         if current_user.is_authenticated:
             from .models import Project, ProjectPermission
             if current_user.can_manage_all_projects():
@@ -113,6 +132,8 @@ def create_app():
                     for perm in ProjectPermission.query.filter(ProjectPermission.group_id == m.group_id).all():
                         project_ids.add(perm.project_id)
                 sidebar_projects = Project.query.filter(Project.id.in_(project_ids)).order_by(Project.updated_at.desc()).limit(20).all()
+            unread_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+            notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).limit(20).all()
 
         return {
             "task_statuses": TASK_STATUSES,
@@ -121,6 +142,8 @@ def create_app():
             "app_version": VERSION,
             "sidebar_projects": sidebar_projects,
             "now": date.today().isoformat(),
+            "unread_count": unread_count,
+            "notifications": notifications,
         }
 
     with app.app_context():

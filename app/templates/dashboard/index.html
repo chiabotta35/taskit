@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — TheYard{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Welcome back, {{ current_user.username }}</h1>
+    </div>
+
+    <div class="stats-row" style="margin-bottom:1.5rem">
+        <div class="stat-card">
+            <div class="stat-value">{{ my_tasks|length }}</div>
+            <div class="stat-label">My Tasks</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value"{% if overdue|length > 0 %} style="color:var(--danger)"{% endif %}>{{ overdue|length }}</div>
+            <div class="stat-label">Overdue</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ project_stats|length }}</div>
+            <div class="stat-label">Projects</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ unread_notifications|length }}</div>
+            <div class="stat-label">Unread</div>
+        </div>
+    </div>
+
+    {% if project_stats %}
+    <div class="card" style="margin-bottom:1.5rem">
+        <h3 style="margin-bottom:1rem">Project Stats</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.75rem">
+            {% for ps in project_stats %}
+            <a href="{{ url_for('projects.detail_project', project_id=ps.project.id) }}" style="display:block;padding:0.75rem;border:1px solid var(--border);border-radius:var(--radius);text-decoration:none;color:inherit;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                <div style="font-weight:500;margin-bottom:0.5rem">{{ ps.project.name }}</div>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                    {% for status, count in ps.stats.items() if status != 'total' and count > 0 %}
+                    <span class="badge badge-{{ status }}" style="font-size:0.7rem">{{ status.replace('_', ' ') }}: {{ count }}</span>
+                    {% endfor %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if my_tasks %}
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.5rem">
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)">
+            <h3>My Tasks <span style="color:var(--text-muted);font-weight:400">({{ my_tasks|length }})</span></h3>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Project</th>
+                    <th>Priority</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in my_tasks %}
+                <tr>
+                    <td style="font-family:var(--mono);font-size:0.75rem;color:var(--text-muted)">{{ task.display_id }}</td>
+                    <td><a href="{{ url_for('tasks.detail_task', task_id=task.id) }}" style="font-weight:500">{{ task.title }}</a></td>
+                    <td style="color:var(--text-secondary);font-size:0.8rem">{{ task.project.name }}</td>
+                    <td><span class="badge badge-{{ task.priority }}">{{ task.priority }}</span></td>
+                    <td style="font-family:var(--mono);font-size:0.75rem">
+                        {% if task.due_date %}
+                        <span style="color:{% if task.due_date.isoformat() < now %}var(--danger){% elif task.due_date.isoformat() == now %}var(--warning){% else %}var(--text-muted){% endif %}">
+                            {{ task.due_date.strftime('%b %d, %Y') }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td><span class="badge badge-{{ task.status }}">{{ task.status.replace('_', ' ') }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card empty-state" style="margin-bottom:1.5rem">
+        <p>No active tasks assigned to you</p>
+    </div>
+    {% endif %}
+
+    {% if overdue %}
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;border:1px solid var(--danger)">
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--danger)">
+            <h3 style="color:var(--danger)">Overdue <span style="color:var(--text-muted);font-weight:400">({{ overdue|length }})</span></h3>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Project</th>
+                    <th>Priority</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in overdue %}
+                <tr style="background:var(--danger)08">
+                    <td style="font-family:var(--mono);font-size:0.75rem;color:var(--text-muted)">{{ task.display_id }}</td>
+                    <td><a href="{{ url_for('tasks.detail_task', task_id=task.id) }}" style="font-weight:500;color:var(--danger)">{{ task.title }}</a></td>
+                    <td style="color:var(--text-secondary);font-size:0.8rem">{{ task.project.name }}</td>
+                    <td><span class="badge badge-{{ task.priority }}">{{ task.priority }}</span></td>
+                    <td style="font-family:var(--mono);font-size:0.75rem;color:var(--danger)">{{ task.due_date.strftime('%b %d, %Y') }}</td>
+                    <td><span class="badge badge-{{ task.status }}">{{ task.status.replace('_', ' ') }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if recent_activity %}
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.5rem">
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)">
+            <h3>Recent Activity</h3>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>When</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in recent_activity %}
+                <tr>
+                    <td style="font-family:var(--mono);font-size:0.7rem;color:var(--text-muted);white-space:nowrap">{{ a.created_at.strftime('%b %d %H:%M') }}</td>
+                    <td style="font-weight:500;font-size:0.8rem">{{ a.user.username }}</td>
+                    <td style="font-size:0.8rem">
+                        <span style="color:var(--text-secondary)">
+                            {{ a.action }}
+                            <span style="color:var(--text)">{{ a.entity_type }}</span>
+                        </span>
+                        {% if a.entity_id %}
+                        <span style="color:var(--text-muted);font-family:var(--mono);font-size:0.7rem">#{{ a.entity_id }}</span>
+                        {% endif %}
+                        <span style="color:var(--accent);font-weight:500">{{ a.entity_name }}</span>
+                    </td>
+                    <td style="font-size:0.75rem;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">{{ a.detail or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if recently_completed %}
+    <div class="card" style="margin-bottom:1.5rem">
+        <h3 style="margin-bottom:0.75rem">Recently Completed</h3>
+        {% for task in recently_completed %}
+        <div style="display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0;border-bottom:1px solid var(--border)">
+            <span class="badge badge-done" style="font-size:0.65rem">done</span>
+            <a href="{{ url_for('tasks.detail_task', task_id=task.id) }}" style="font-weight:500;text-decoration:line-through;color:var(--text-muted)">{{ task.title }}</a>
+            <span style="color:var(--text-muted);font-size:0.7rem;margin-left:auto;white-space:nowrap">{{ task.project.name }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if unread_notifications %}
+    <div class="card" style="margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+            <h3>Unread Notifications</h3>
+            <form method="POST" action="{{ url_for('dashboard.mark_notifications_read') }}">
+                <button type="submit" class="btn btn-ghost btn-sm">Mark all read</button>
+            </form>
+        </div>
+        {% for n in unread_notifications %}
+        <div style="display:flex;align-items:start;gap:0.5rem;padding:0.5rem 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1">
+                <div style="font-weight:500;font-size:0.85rem">{{ n.title }}</div>
+                {% if n.body %}
+                <div style="color:var(--text-secondary);font-size:0.75rem;margin-top:0.15rem">{{ n.body }}</div>
+                {% endif %}
+            </div>
+            {% if n.url %}
+            <a href="{{ n.url }}" class="btn btn-ghost btn-sm" style="white-space:nowrap">View</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

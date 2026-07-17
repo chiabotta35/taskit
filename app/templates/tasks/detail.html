@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ task.title }} — TheYard{% endblock %}
+{% block title %}{{ task.display_id }} — TheYard{% endblock %}
 {% block content %}
 <div class="container">
     <div class="page-header">
         <div style="display:flex;align-items:center;gap:0.75rem">
             <a href="{{ url_for('projects.detail_project', project_id=task.project_id) }}" class="btn btn-ghost btn-sm">← Back</a>
+            <span style="color:var(--text-muted);font-family:var(--mono);font-size:0.75rem">{{ task.display_id }}</span>
             <h1>{{ task.title }}</h1>
         </div>
         <div style="display:flex;gap:0.4rem">
@@ -36,7 +37,7 @@
         <div class="detail-label">Due Date</div>
         <div>
             {% if task.due_date %}
-                <span style="color:{% if task.due_date < now %}var(--danger){% elif task.due_date.isoformat() == now %}var(--warning){% else %}var(--text-secondary){% endif %}">
+                <span style="color:{% if task.due_date.isoformat() < now %}var(--danger){% elif task.due_date.isoformat() == now %}var(--warning){% else %}var(--text-secondary){% endif %}">
                     {{ task.due_date.strftime('%b %d, %Y') }}
                 </span>
             {% else %}—{% endif %}
@@ -50,11 +51,63 @@
             {% endfor %}
         </div>
         {% endif %}
+
+        {% if blocked_by_tasks %}
+        <div class="detail-label">Blocked by</div>
+        <div class="dep-list">
+            {% for bt in blocked_by_tasks %}
+            <a href="{{ url_for('tasks.detail_task', task_id=bt.id) }}" class="dep-chip blocked">{{ bt.display_id }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if blocking_tasks %}
+        <div class="detail-label">Blocks</div>
+        <div class="dep-list">
+            {% for bt in blocking_tasks %}
+            <a href="{{ url_for('tasks.detail_task', task_id=bt.id) }}" class="dep-chip blocking">{{ bt.display_id }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
     {% if task.description %}
     <div class="card" style="max-width:600px;margin-top:1rem">
         <p style="white-space:pre-wrap;color:var(--text-secondary);font-size:0.85rem;line-height:1.7">{{ task.description }}</p>
+    </div>
+    {% endif %}
+
+    {% if attachments %}
+    <div class="card" style="max-width:600px;margin-top:1rem">
+        <h3>Attachments <span style="color:var(--text-muted);font-weight:400">({{ attachments|length }})</span></h3>
+        <div class="attachment-list">
+            {% for att in attachments %}
+            <div class="attachment-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="color:var(--text-muted)"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <a href="{{ url_for('tasks.download_attachment', att_id=att.id) }}" class="att-name">{{ att.filename }}</a>
+                <span class="att-size">{{ (att.size / 1024)|round(1) }}KB</span>
+                {% if role in ['admin', 'editor'] %}
+                <form method="POST" action="{{ url_for('tasks.delete_attachment', att_id=att.id) }}" style="display:inline">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete?')">×</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if role in ['admin', 'editor'] %}
+    <div class="card" style="max-width:600px;margin-top:1rem">
+        <h3>Upload File</h3>
+        <form method="POST" action="{{ url_for('tasks.upload_attachment', task_id=task.id) }}" enctype="multipart/form-data">
+            <div style="display:flex;gap:0.5rem;align-items:flex-end">
+                <div class="form-group" style="margin-bottom:0;flex:1">
+                    <input type="file" name="file" style="width:100%;padding:0.4rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:0.8rem;font-family:var(--font)">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Upload</button>
+            </div>
+        </form>
     </div>
     {% endif %}
 
@@ -77,7 +130,6 @@
         {% endif %}
     </div>
 
-    {% set role = current_user.get_highest_project_role(task.project_id) %}
     {% if role in ['admin', 'editor'] %}
     <div class="card" style="max-width:600px">
         <form method="POST" action="{{ url_for('tasks.add_comment', task_id=task.id) }}">

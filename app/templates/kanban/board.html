@@ -32,6 +32,7 @@
                      data-task-id="{{ task.id }}"
                      ondragstart="handleDragStart(event)"
                      ondragend="handleDragEnd(event)">
+                    <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-muted);margin-bottom:0.2rem">{{ task.display_id }}</div>
                     <a href="{{ url_for('tasks.detail_task', task_id=task.id) }}" class="kanban-card-title" style="color:var(--text)">{{ task.title }}</a>
                     {% if task.task_labels %}
                     <div class="kanban-card-labels">

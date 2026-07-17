@@ -54,7 +54,7 @@ class GroupForm(FlaskForm):
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("projects.list_projects"))
+        return redirect(url_for("dashboard.index"))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
@@ -89,6 +89,18 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for("auth.login"))
+
+
+THEMES = ["dark", "light", "midnight", "ocean", "forest", "sunset", "rose"]
+
+
+@auth_bp.route("/theme/<theme_name>", methods=["POST"])
+@login_required
+def set_theme(theme_name):
+    if theme_name in THEMES:
+        current_user.theme = theme_name
+        db.session.commit()
+    return {"ok": True}
 
 
 @auth_bp.route("/admin/users")

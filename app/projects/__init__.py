@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Optional
 
 from ..models import db, Project, ProjectPermission, User, Group, Label, TaskLabel, log_activity, LABEL_COLORS
 from ..webhooks import fire_webhook, build_project_payload
@@ -12,6 +12,7 @@ projects_bp = Blueprint("projects", __name__, url_prefix="/projects")
 
 class ProjectForm(FlaskForm):
     name = StringField("Project Name", validators=[DataRequired()])
+    prefix = StringField("Prefix", validators=[Optional()])
     description = TextAreaField("Description")
     status = SelectField("Status", choices=[(s, s.replace("_", " ").title()) for s in ["draft", "active", "archived"]])
 
@@ -62,6 +63,7 @@ def create_project():
     if form.validate_on_submit():
         project = Project(
             name=form.name.data,
+            prefix=form.prefix.data.strip().upper() if form.prefix.data else "",
             description=form.description.data,
             status=form.status.data,
             created_by=current_user.id,
@@ -110,6 +112,7 @@ def edit_project(project_id):
     form = ProjectForm(obj=project)
     if form.validate_on_submit():
         project.name = form.name.data
+        project.prefix = form.prefix.data.strip().upper() if form.prefix.data else ""
         project.description = form.description.data
         project.status = form.status.data
         db.session.commit()

@@ -60,6 +60,7 @@ def build_task_payload(task, action=None):
         pass
     return {
         "task_id": task.id,
+        "display_id": task.display_id,
         "title": task.title,
         "status": task.status,
         "priority": task.priority,
