@@ -9,6 +9,7 @@
 <body>
     <nav>
         <a class="brand" href="{{ url_for('projects.list_projects') }}">TheYard</a>
+        <span style="color:var(--text-dim);font-size:0.75rem;margin-right:1.5rem">v{{ app_version }}</span>
         <div class="nav-links">
             <a href="{{ url_for('projects.list_projects') }}">Projects</a>
             {% if current_user.is_authenticated and current_user.can_manage_all_projects() %}

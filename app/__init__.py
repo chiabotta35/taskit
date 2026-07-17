@@ -1,10 +1,13 @@
 import os
+from pathlib import Path
 from flask import Flask
 from flask_login import LoginManager
 from flask_migrate import Migrate
 
 from .config import Config
 from .models import db, User
+
+VERSION = Path(__file__).resolve().parent.parent.joinpath("VERSION").read_text().strip()
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
@@ -42,6 +45,7 @@ def create_app():
             "task_statuses": TASK_STATUSES,
             "task_priorities": TASK_PRIORITIES,
             "project_statuses": PROJECT_STATUSES,
+            "app_version": VERSION,
         }
 
     with app.app_context():
