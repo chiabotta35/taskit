@@ -76,8 +76,12 @@ def _seed_admin(app):
             )
             admin.set_password(admin_password)
             db.session.add(admin)
-            db.session.commit()
-            logger.info("Admin user '%s' created.", admin_username)
+            try:
+                db.session.commit()
+                logger.info("Admin user '%s' created.", admin_username)
+            except Exception:
+                db.session.rollback()
+                logger.info("Admin user '%s' already exists (race), skipping.", admin_username)
         else:
             logger.info("Admin user '%s' already exists, skipping.", admin_username)
 
