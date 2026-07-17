@@ -15,5 +15,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 5000
 
-ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "-w", "2", "--timeout", "120", "wsgi:app"]
+ENTRYPOINT ["sh", "-c", "python seed.py && exec gunicorn -b 0.0.0.0:5000 -w 2 --timeout 120 wsgi:app"]
