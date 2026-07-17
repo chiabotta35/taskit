@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Edit User - {{ target_user.username }}{% endblock %}
+{% block title %}Edit User — TheYard{% endblock %}
 {% block content %}
 <div class="container">
     <div class="page-header">
-        <h1>Edit User: {{ target_user.username }}</h1>
+        <h1>Edit User</h1>
     </div>
-    <div class="card" style="max-width:500px">
+    <div class="card" style="max-width:480px">
         <form method="POST">
             {{ form.hidden_tag() }}
             <div class="form-group">
@@ -19,17 +19,13 @@
                 {% for e in form.email.errors %}<div class="errors">{{ e }}</div>{% endfor %}
             </div>
             <div class="form-group">
-                <label>New Password (blank to keep current)</label>
-                {{ form.password() }}
+                <label>New Password</label>
+                {{ form.password(placeholder="Leave blank to keep current") }}
             </div>
-            <div class="form-group">
-                <label>{{ form.is_admin() }} Admin</label>
-            </div>
-            <div class="form-group">
-                <label>{{ form.is_owner() }} Owner</label>
-            </div>
-            <div class="form-group">
-                <label>{{ form.is_active_user() }} Active</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin:1rem 0">
+                <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.8rem;cursor:pointer">{{ form.is_admin() }} Admin</label>
+                <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.8rem;cursor:pointer">{{ form.is_owner() }} Owner</label>
+                <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.8rem;cursor:pointer">{{ form.is_active_user() }} Active</label>
             </div>
             <div style="display:flex;gap:0.5rem">
                 <button type="submit" class="btn btn-primary">Save</button>

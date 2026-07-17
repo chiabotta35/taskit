@@ -1,29 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Login{% endblock %}
+{% block title %}Sign in — TheYard{% endblock %}
 {% block content %}
-<div class="auth-container">
-    <div class="card">
-        <h1>Login</h1>
+<div class="auth-wrapper">
+    <div class="card auth-card">
+        <h1>Sign in to TheYard</h1>
         <form method="POST">
             {{ form.hidden_tag() }}
             <div class="form-group">
                 <label for="username">Username</label>
-                {{ form.username(id="username", placeholder="Username") }}
+                {{ form.username(id="username", placeholder="username") }}
                 {% for e in form.username.errors %}<div class="errors">{{ e }}</div>{% endfor %}
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                {{ form.password(id="password", placeholder="Password") }}
+                {{ form.password(id="password", placeholder="password") }}
                 {% for e in form.password.errors %}<div class="errors">{{ e }}</div>{% endfor %}
             </div>
             <div class="form-group">
-                <label>{{ form.remember() }} Remember me</label>
+                <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer">{{ form.remember() }} Remember me</label>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%">Login</button>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:0.55rem">Sign in</button>
         </form>
-        <p style="text-align:center;margin-top:1rem;font-size:0.875rem;color:var(--text-dim)">
+        <div class="auth-footer">
             Don't have an account? <a href="{{ url_for('auth.register') }}">Register</a>
-        </p>
+        </div>
     </div>
 </div>
 {% endblock %}

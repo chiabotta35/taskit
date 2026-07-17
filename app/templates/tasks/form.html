@@ -1,30 +1,32 @@
 {% extends "base.html" %}
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} — TheYard{% endblock %}
 {% block content %}
 <div class="container">
     <div class="page-header">
         <h1>{{ title }}</h1>
     </div>
-    <div class="card" style="max-width:600px">
+    <div class="card" style="max-width:560px">
         <form method="POST">
             {{ form.hidden_tag() }}
             {{ form.project_id() }}
             <div class="form-group">
                 <label for="title">Title</label>
-                {{ form.title(id="title") }}
+                {{ form.title(id="title", placeholder="Task title") }}
                 {% for e in form.title.errors %}<div class="errors">{{ e }}</div>{% endfor %}
             </div>
             <div class="form-group">
                 <label for="description">Description</label>
-                {{ form.description(id="description") }}
+                {{ form.description(id="description", placeholder="Optional description") }}
             </div>
-            <div class="form-group">
-                <label for="status">Status</label>
-                {{ form.status(id="status") }}
-            </div>
-            <div class="form-group">
-                <label for="priority">Priority</label>
-                {{ form.priority(id="priority") }}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    {{ form.status(id="status") }}
+                </div>
+                <div class="form-group">
+                    <label for="priority">Priority</label>
+                    {{ form.priority(id="priority") }}
+                </div>
             </div>
             <div class="form-group">
                 <label for="assignee_id">Assignee</label>

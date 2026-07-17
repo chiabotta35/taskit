@@ -1,57 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Permissions - {{ project.name }}{% endblock %}
+{% block title %}Permissions — TheYard{% endblock %}
 {% block content %}
 <div class="container">
     <div class="page-header">
-        <h1>Permissions: {{ project.name }}</h1>
-        <a href="{{ url_for('projects.detail_project', project_id=project.id) }}" class="btn btn-ghost">Back</a>
+        <h1>Permissions <span style="color:var(--text-muted);font-weight:400;font-size:0.85rem">{{ project.name }}</span></h1>
+        <a href="{{ url_for('projects.detail_project', project_id=project.id) }}" class="btn btn-ghost btn-sm">Back</a>
     </div>
 
-    <div class="card" style="max-width:700px">
+    <div class="card" style="max-width:650px">
         <h3>Add Permission</h3>
         <form method="POST" action="{{ url_for('projects.add_permission', project_id=project.id) }}" style="display:flex;gap:0.5rem;align-items:flex-end;flex-wrap:wrap">
-            <div class="form-group" style="margin-bottom:0;flex:0 0 120px">
+            <div class="form-group" style="margin-bottom:0;flex:0 0 110px">
                 <label>Type</label>
-                <select name="target_type" id="target_type" onchange="updateTargets()" style="width:100%;padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)">
+                <select name="target_type" id="target_type" onchange="updateTargets()" style="width:100%;padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:0.85rem">
                     <option value="user">User</option>
                     <option value="group">Group</option>
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom:0;flex:1;min-width:150px">
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:140px">
                 <label>Target</label>
-                <select name="target_id" id="target_id" style="width:100%;padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)">
+                <select name="target_id" id="target_id" style="width:100%;padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:0.85rem">
                     {% for u in users %}<option value="{{ u.id }}" data-type="user">{{ u.username }}</option>{% endfor %}
                     {% for g in groups %}<option value="{{ g.id }}" data-type="group">{{ g.name }}</option>{% endfor %}
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom:0;flex:0 0 120px">
+            <div class="form-group" style="margin-bottom:0;flex:0 0 110px">
                 <label>Permission</label>
-                <select name="permission_level" style="width:100%;padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)">
+                <select name="permission_level" style="width:100%;padding:0.5rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font);font-size:0.85rem">
                     <option value="viewer">Viewer</option>
                     <option value="editor">Editor</option>
                     <option value="admin">Admin</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">Add</button>
+            <button type="submit" class="btn btn-primary btn-sm">Add</button>
         </form>
     </div>
 
-    <div class="card" style="max-width:700px">
-        <h3>Current Permissions</h3>
+    <div class="card" style="max-width:650px;padding:0;overflow:hidden">
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)">
+            <h3>Current Permissions <span style="color:var(--text-muted);font-weight:400">({{ permissions|length }})</span></h3>
+        </div>
         {% if permissions %}
         <table>
-            <thead>
-                <tr><th>Target</th><th>Type</th><th>Level</th><th></th></tr>
-            </thead>
+            <thead><tr><th>Target</th><th>Type</th><th>Level</th><th></th></tr></thead>
             <tbody>
                 {% for p in permissions %}
                 <tr>
-                    <td>{{ p.user.username if p.user else p.group.name }}</td>
-                    <td>{{ 'User' if p.user_id else 'Group' }}</td>
+                    <td style="font-weight:500">{{ p.user.username if p.user else p.group.name }}</td>
+                    <td style="color:var(--text-muted)">{{ 'User' if p.user_id else 'Group' }}</td>
                     <td><span class="badge badge-{{ p.permission_level }}">{{ p.permission_level }}</span></td>
                     <td>
                         <form method="POST" action="{{ url_for('projects.remove_permission', project_id=project.id, perm_id=p.id) }}" style="display:inline">
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Remove this permission?')">Remove</button>
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Remove?')">Remove</button>
                         </form>
                     </td>
                 </tr>
@@ -59,7 +59,7 @@
             </tbody>
         </table>
         {% else %}
-        <p style="color:var(--text-dim);padding:1rem 0">No permissions configured. The project creator has admin access.</p>
+        <div class="empty-state" style="padding:2rem"><p>No permissions configured</p></div>
         {% endif %}
     </div>
 </div>

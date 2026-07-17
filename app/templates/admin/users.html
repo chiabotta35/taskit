@@ -1,41 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Users{% endblock %}
+{% block title %}Users — TheYard{% endblock %}
 {% block content %}
 <div class="container">
     <div class="page-header">
-        <h1>User Management</h1>
+        <h1>Users</h1>
     </div>
-    <div class="card">
+    <div class="card" style="padding:0;overflow:hidden">
         <table>
             <thead>
                 <tr>
-                    <th>Username</th>
+                    <th>User</th>
                     <th>Email</th>
-                    <th>Roles</th>
-                    <th>Active</th>
-                    <th>Created</th>
+                    <th>Role</th>
+                    <th>Status</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
                 <tr>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.email }}</td>
+                    <td style="font-weight:500">{{ user.username }}</td>
+                    <td style="color:var(--text-muted)">{{ user.email }}</td>
                     <td>
-                        {% if user.is_admin %}<span class="badge badge-admin">Admin</span>{% endif %}
-                        {% if user.is_owner %}<span class="badge badge-editor">Owner</span>{% endif %}
-                        {% if not user.is_admin and not user.is_owner %}<span class="badge badge-viewer">User</span>{% endif %}
+                        {% if user.is_admin %}<span class="badge badge-admin">Admin</span>
+                        {% elif user.is_owner %}<span class="badge badge-editor">Owner</span>
+                        {% else %}<span class="badge badge-viewer">User</span>{% endif %}
                     </td>
-                    <td>{% if user.is_active_user %}<span style="color:var(--success)">Yes</span>{% else %}<span style="color:var(--danger)">No</span>{% endif %}</td>
-                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{% if user.is_active_user %}<span style="color:var(--success);font-size:0.75rem">Active</span>{% else %}<span style="color:var(--danger);font-size:0.75rem">Disabled</span>{% endif %}</td>
                     <td>
-                        <a href="{{ url_for('auth.admin_edit_user', user_id=user.id) }}" class="btn btn-ghost btn-sm">Edit</a>
-                        {% if user.id != current_user.id %}
-                        <form method="POST" action="{{ url_for('auth.admin_delete_user', user_id=user.id) }}" style="display:inline">
-                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete {{ user.username }}?')">Delete</button>
-                        </form>
-                        {% endif %}
+                        <div style="display:flex;gap:0.3rem">
+                            <a href="{{ url_for('auth.admin_edit_user', user_id=user.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+                            {% if user.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('auth.admin_delete_user', user_id=user.id) }}" style="display:inline">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete {{ user.username }}?')">Delete</button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
