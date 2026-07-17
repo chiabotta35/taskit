@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Projects</h1>
+        <a href="{{ url_for('projects.create_project') }}" class="btn btn-primary">+ New Project</a>
+    </div>
+
+    {% if projects %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Tasks</th>
+                <th>Created</th>
+                <th>Updated</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr>
+                <td><a href="{{ url_for('projects.detail_project', project_id=project.id) }}">{{ project.name }}</a></td>
+                <td><span class="badge badge-{{ project.status }}">{{ project.status }}</span></td>
+                <td>{{ project.tasks.count() }}</td>
+                <td>{{ project.created_at.strftime('%Y-%m-%d') }}</td>
+                <td>{{ project.updated_at.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No projects yet.</p>
+        <a href="{{ url_for('projects.create_project') }}" class="btn btn-primary" style="margin-top:1rem">Create your first project</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

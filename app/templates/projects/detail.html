@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <div>
+            <h1>{{ project.name }}</h1>
+            <span class="badge badge-{{ project.status }}">{{ project.status }}</span>
+            <span style="color:var(--text-dim);font-size:0.85rem;margin-left:0.5rem">Your role: <span class="badge badge-{{ role }}">{{ role }}</span></span>
+        </div>
+        <div style="display:flex;gap:0.5rem">
+            <a href="{{ url_for('kanban.board', project_id=project.id) }}" class="btn btn-ghost">Board</a>
+            {% if role == 'admin' %}
+            <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-ghost">Edit</a>
+            <a href="{{ url_for('projects.project_permissions', project_id=project.id) }}" class="btn btn-ghost">Permissions</a>
+            {% endif %}
+            {% if role in ['admin', 'editor'] %}
+            <a href="{{ url_for('tasks.create_task', project_id=project.id) }}" class="btn btn-primary">+ Task</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if project.description %}
+    <div class="card">
+        <p style="white-space:pre-wrap">{{ project.description }}</p>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <h3>Tasks ({{ tasks|length }})</h3>
+        {% if tasks %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Assignee</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td><a href="{{ url_for('tasks.detail_task', task_id=task.id) }}">{{ task.title }}</a></td>
+                    <td><span class="badge badge-{{ task.status }}">{{ task.status.replace('_', ' ') }}</span></td>
+                    <td><span class="badge badge-{{ task.priority }}">{{ task.priority }}</span></td>
+                    <td>{{ task.assignee.username if task.assignee else '—' }}</td>
+                    <td>{{ task.created_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:1.5rem">
+            <p>No tasks yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

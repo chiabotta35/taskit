@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Edit User - {{ target_user.username }}{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Edit User: {{ target_user.username }}</h1>
+    </div>
+    <div class="card" style="max-width:500px">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                <label>Username</label>
+                {{ form.username() }}
+                {% for e in form.username.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                {{ form.email() }}
+                {% for e in form.email.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label>New Password (blank to keep current)</label>
+                {{ form.password() }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.is_admin() }} Admin</label>
+            </div>
+            <div class="form-group">
+                <label>{{ form.is_owner() }} Owner</label>
+            </div>
+            <div class="form-group">
+                <label>{{ form.is_active_user() }} Active</label>
+            </div>
+            <div style="display:flex;gap:0.5rem">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="{{ url_for('auth.admin_users') }}" class="btn btn-ghost">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

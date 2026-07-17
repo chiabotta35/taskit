@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>{{ task.title }}</h1>
+        <div style="display:flex;gap:0.5rem">
+            {% if task.project %}
+            <a href="{{ url_for('kanban.board', project_id=task.project_id) }}" class="btn btn-ghost">Board</a>
+            {% endif %}
+            {% if task.project and task.project.id %}
+            <a href="{{ url_for('projects.detail_project', project_id=task.project_id) }}" class="btn btn-ghost">Project</a>
+            {% endif %}
+            {% if task.project %}
+            {% set role = current_user.get_highest_project_role(task.project_id) %}
+            {% if role in ['admin', 'editor'] %}
+            <a href="{{ url_for('tasks.edit_task', task_id=task.id) }}" class="btn btn-ghost">Edit</a>
+            {% endif %}
+            {% if role == 'admin' %}
+            <form method="POST" action="{{ url_for('tasks.delete_task', task_id=task.id) }}" style="display:inline">
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this task?')">Delete</button>
+            </form>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card" style="max-width:700px">
+        <div class="detail-grid">
+            <div class="detail-label">Status</div>
+            <div class="detail-value"><span class="badge badge-{{ task.status }}">{{ task.status.replace('_', ' ') }}</span></div>
+
+            <div class="detail-label">Priority</div>
+            <div class="detail-value"><span class="badge badge-{{ task.priority }}">{{ task.priority }}</span></div>
+
+            <div class="detail-label">Project</div>
+            <div class="detail-value"><a href="{{ url_for('projects.detail_project', project_id=task.project_id) }}">{{ task.project.name }}</a></div>
+
+            <div class="detail-label">Assignee</div>
+            <div class="detail-value">{{ task.assignee.username if task.assignee else '—' }}</div>
+
+            <div class="detail-label">Created by</div>
+            <div class="detail-value">{{ task.creator.username }}</div>
+
+            <div class="detail-label">Created</div>
+            <div class="detail-value">{{ task.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+
+            <div class="detail-label">Updated</div>
+            <div class="detail-value">{{ task.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+
+        {% if task.description %}
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+            <p style="white-space:pre-wrap">{{ task.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card" style="max-width:700px">
+        <h3>Comments ({{ comments|length }})</h3>
+
+        {% for comment in comments %}
+        <div class="comment">
+            <div class="comment-header">
+                <span class="comment-author">{{ comment.author.username }}</span>
+                <span class="comment-time">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            <div class="comment-body">{{ comment.content }}</div>
+        </div>
+        {% endfor %}
+
+        {% if not comments %}
+        <p style="color:var(--text-dim);padding:0.5rem 0">No comments yet.</p>
+        {% endif %}
+
+        {% if task.project %}
+        {% set role = current_user.get_highest_project_role(task.project_id) %}
+        {% if role in ['admin', 'editor'] %}
+        <form method="POST" action="{{ url_for('tasks.add_comment', task_id=task.id) }}" style="margin-top:1rem">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.content(rows=3, placeholder="Add a comment...") }}
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Add Comment</button>
+        </form>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="card">
+        <h1>Register</h1>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                <label for="username">Username</label>
+                {{ form.username(id="username", placeholder="Username") }}
+                {% for e in form.username.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                {{ form.email(id="email", placeholder="Email") }}
+                {% for e in form.email.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                {{ form.password(id="password", placeholder="Password") }}
+                {% for e in form.password.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                {{ form.confirm_password(id="confirm_password", placeholder="Confirm Password") }}
+                {% for e in form.confirm_password.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Register</button>
+        </form>
+        <p style="text-align:center;margin-top:1rem;font-size:0.875rem;color:var(--text-dim)">
+            Already have an account? <a href="{{ url_for('auth.login') }}">Login</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Groups{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Group Management</h1>
+        <a href="{{ url_for('auth.admin_create_group') }}" class="btn btn-primary">+ New Group</a>
+    </div>
+    <div class="card">
+        {% if groups %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Members</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in groups %}
+                <tr>
+                    <td>{{ group.name }}</td>
+                    <td>{{ group.description or '—' }}</td>
+                    <td>{{ group.memberships.count() }}</td>
+                    <td>{{ group.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <a href="{{ url_for('auth.admin_group_members', group_id=group.id) }}" class="btn btn-ghost btn-sm">Members</a>
+                        <a href="{{ url_for('auth.admin_edit_group', group_id=group.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+                        <form method="POST" action="{{ url_for('auth.admin_delete_group', group_id=group.id) }}" style="display:inline">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete {{ group.name }}?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:1.5rem">
+            <p>No groups yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

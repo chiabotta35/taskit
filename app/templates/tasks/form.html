@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>{{ title }}</h1>
+    </div>
+    <div class="card" style="max-width:600px">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            {{ form.project_id() }}
+            <div class="form-group">
+                <label for="title">Title</label>
+                {{ form.title(id="title") }}
+                {% for e in form.title.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="form-group">
+                <label for="description">Description</label>
+                {{ form.description(id="description") }}
+            </div>
+            <div class="form-group">
+                <label for="status">Status</label>
+                {{ form.status(id="status") }}
+            </div>
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                {{ form.priority(id="priority") }}
+            </div>
+            <div class="form-group">
+                <label for="assignee_id">Assignee</label>
+                {{ form.assignee_id(id="assignee_id") }}
+            </div>
+            <div style="display:flex;gap:0.5rem">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="{{ url_for('projects.detail_project', project_id=project.id) }}" class="btn btn-ghost">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

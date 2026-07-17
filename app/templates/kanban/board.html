@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Board: {{ project.name }}{% endblock %}
+{% block content %}
+<div class="container-wide">
+    <div class="page-header">
+        <h1>{{ project.name }} — Board</h1>
+        <div style="display:flex;gap:0.5rem">
+            <a href="{{ url_for('projects.detail_project', project_id=project.id) }}" class="btn btn-ghost">Project</a>
+            {% set role = current_user.get_highest_project_role(project.id) %}
+            {% if role in ['admin', 'editor'] %}
+            <a href="{{ url_for('tasks.create_task', project_id=project.id) }}" class="btn btn-primary">+ Task</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="kanban-board">
+        {% for status_key, label in [('todo', 'To Do'), ('in_progress', 'In Progress'), ('review', 'Review'), ('done', 'Done')] %}
+        <div class="kanban-column" data-status="{{ status_key }}">
+            <div class="kanban-column-header">
+                {{ label }}
+                <span class="count">{{ columns[status_key]|length }}</span>
+            </div>
+            <div class="kanban-cards" data-status="{{ status_key }}"
+                 ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                 ondragleave="this.classList.remove('drag-over')"
+                 ondrop="handleDrop(event, '{{ status_key }}')">
+                {% for task in columns[status_key] %}
+                <div class="kanban-card" draggable="true"
+                     data-task-id="{{ task.id }}"
+                     ondragstart="handleDragStart(event)"
+                     ondragend="handleDragEnd(event)">
+                    <a href="{{ url_for('tasks.detail_task', task_id=task.id) }}" class="kanban-card-title" style="color:var(--text)">{{ task.title }}</a>
+                    <div class="kanban-card-meta">
+                        <span class="badge badge-{{ task.priority }}">{{ task.priority }}</span>
+                        {% if task.assignee %}
+                        <span>{{ task.assignee.username }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+let draggedTaskId = null;
+
+function handleDragStart(e) {
+    draggedTaskId = e.target.dataset.taskId;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+    document.querySelectorAll('.kanban-cards').forEach(c => c.classList.remove('drag-over'));
+}
+
+function handleDrop(e, newStatus) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if (!draggedTaskId) return;
+
+    fetch('{{ url_for("kanban.move_task", project_id=project.id) }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: parseInt(draggedTaskId), new_status: newStatus, new_position: 0 })
+    }).then(r => {
+        if (r.ok) location.reload();
+    });
+    draggedTaskId = null;
+}
+</script>
+{% endblock %}
