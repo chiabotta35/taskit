@@ -225,6 +225,40 @@ class Comment(db.Model):
 
 LEVEL_RANKS = {"viewer": 0, "editor": 1, "admin": 2}
 
+WEBHOOK_EVENTS = [
+    "task.created",
+    "task.updated",
+    "task.status_changed",
+    "task.deleted",
+    "comment.created",
+    "project.created",
+    "project.updated",
+    "project.deleted",
+]
+
 
 def _level_rank(level):
     return LEVEL_RANKS.get(level, -1)
+
+
+class Webhook(db.Model):
+    __tablename__ = "webhooks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String(500), nullable=False)
+    name = db.Column(db.String(80), nullable=False, default="")
+    secret = db.Column(db.String(128), nullable=True)
+    events = db.Column(db.Text, nullable=False, default="task.created,task.updated,task.status_changed,comment.created")
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    creator = db.relationship("User", backref="created_webhooks")
+
+    def get_events_list(self):
+        return [e.strip() for e in self.events.split(",") if e.strip()]
+
+    def set_events_list(self, event_list):
+        self.events = ",".join(event_list)

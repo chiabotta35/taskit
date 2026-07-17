@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Webhooks{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Webhooks</h1>
+        <a href="{{ url_for('webhooks.create_webhook') }}" class="btn btn-primary">+ New Webhook</a>
+    </div>
+
+    {% if webhooks %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>URL</th>
+                <th>Events</th>
+                <th>Active</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for wh in webhooks %}
+            <tr>
+                <td>{{ wh.name }}</td>
+                <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">{{ wh.url }}</td>
+                <td>
+                    {% for e in wh.get_events_list() %}
+                    <span class="badge badge-in_progress" style="margin:1px">{{ e }}</span>
+                    {% endfor %}
+                </td>
+                <td>{% if wh.is_active %}<span style="color:var(--success)">Yes</span>{% else %}<span style="color:var(--text-dim)">No</span>{% endif %}</td>
+                <td style="white-space:nowrap">
+                    <form method="POST" action="{{ url_for('webhooks.test_webhook', webhook_id=wh.id) }}" style="display:inline">
+                        <button type="submit" class="btn btn-ghost btn-sm">Test</button>
+                    </form>
+                    <a href="{{ url_for('webhooks.edit_webhook', webhook_id=wh.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+                    <form method="POST" action="{{ url_for('webhooks.delete_webhook', webhook_id=wh.id) }}" style="display:inline">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this webhook?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:2rem">
+        <p>No webhooks configured.</p>
+        <p style="font-size:0.85rem;margin-top:0.5rem">Connect to Discord, Slack, or any service that accepts JSON webhooks.</p>
+    </div>
+    {% endif %}
+
+    <div class="card" style="margin-top:1.5rem;max-width:700px">
+        <h3>Supported Events</h3>
+        <table>
+            <thead><tr><th>Event</th><th>Fires when</th></tr></thead>
+            <tbody>
+                <tr><td><code>task.created</code></td><td>A new task is created</td></tr>
+                <tr><td><code>task.updated</code></td><td>A task is edited</td></tr>
+                <tr><td><code>task.status_changed</code></td><td>A task moves columns on the board</td></tr>
+                <tr><td><code>task.deleted</code></td><td>A task is deleted</td></tr>
+                <tr><td><code>comment.created</code></td><td>A comment is added to a task</td></tr>
+                <tr><td><code>project.created</code></td><td>A new project is created</td></tr>
+                <tr><td><code>project.updated</code></td><td>A project is edited</td></tr>
+                <tr><td><code>project.deleted</code></td><td>A project is deleted</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card" style="margin-top:1rem;max-width:700px">
+        <h3>Discord Setup</h3>
+        <p style="font-size:0.875rem;color:var(--text-dim)">
+            1. Go to your Discord server → Channel Settings → Integrations → Webhooks<br>
+            2. Create a webhook, copy the URL<br>
+            3. Paste it in TheYard, select your events, save<br>
+            4. Use the <strong>Test</strong> button to verify it works
+        </p>
+    </div>
+</div>
+{% endblock %}

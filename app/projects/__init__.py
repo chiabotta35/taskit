@@ -5,6 +5,7 @@ from wtforms import StringField, TextAreaField, SelectField
 from wtforms.validators import DataRequired
 
 from ..models import db, Project, ProjectPermission, User, Group
+from ..webhooks import fire_webhook, build_project_payload
 
 projects_bp = Blueprint("projects", __name__, url_prefix="/projects")
 
@@ -72,6 +73,7 @@ def create_project():
         )
         db.session.add(perm)
         db.session.commit()
+        fire_webhook("project.created", build_project_payload(project, "created"))
         flash(f"Project '{project.name}' created.", "success")
         return redirect(url_for("projects.detail_project", project_id=project.id))
     return render_template("projects/form.html", form=form, title="Create Project")
@@ -111,6 +113,7 @@ def edit_project(project_id):
         project.description = form.description.data
         project.status = form.status.data
         db.session.commit()
+        fire_webhook("project.updated", build_project_payload(project, "updated"))
         flash(f"Project '{project.name}' updated.", "success")
         return redirect(url_for("projects.detail_project", project_id=project_id))
     return render_template("projects/form.html", form=form, title="Edit Project")
@@ -127,8 +130,10 @@ def delete_project(project_id):
         flash("Access denied.", "danger")
         return redirect(url_for("projects.detail_project", project_id=project_id))
     name = project.name
+    payload = build_project_payload(project, "deleted")
     db.session.delete(project)
     db.session.commit()
+    fire_webhook("project.deleted", payload)
     flash(f"Project '{name}' deleted.", "success")
     return redirect(url_for("projects.list_projects"))
 

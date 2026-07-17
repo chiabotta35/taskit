@@ -31,11 +31,13 @@ def create_app():
     from .projects import projects_bp
     from .tasks import tasks_bp
     from .kanban import kanban_bp
+    from .webhooks_ui import webhooks_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(projects_bp)
     app.register_blueprint(tasks_bp)
     app.register_blueprint(kanban_bp)
+    app.register_blueprint(webhooks_bp)
 
     @app.context_processor
     def inject_globals():

@@ -5,6 +5,7 @@ from wtforms import StringField, TextAreaField, SelectField, HiddenField
 from wtforms.validators import DataRequired
 
 from ..models import db, Task, Comment, User, PROJECT_STATUSES
+from ..webhooks import fire_webhook, build_task_payload, build_comment_payload
 
 tasks_bp = Blueprint("tasks", __name__, url_prefix="/tasks")
 
@@ -84,6 +85,7 @@ def create_task(project_id):
         )
         db.session.add(task)
         db.session.commit()
+        fire_webhook("task.created", build_task_payload(task, "created"))
         flash(f"Task '{task.title}' created.", "success")
         return redirect(url_for("tasks.detail_task", task_id=task.id))
     return render_template(
@@ -105,12 +107,16 @@ def edit_task(task_id):
     form.assignee_id.choices = _assignee_choices(task.project_id)
     form.project_id.data = str(task.project_id)
     if form.validate_on_submit():
+        old_status = task.status
         task.title = form.title.data
         task.description = form.description.data
         task.status = form.status.data
         task.priority = form.priority.data
         task.assignee_id = form.assignee_id.data
         db.session.commit()
+        fire_webhook("task.updated", build_task_payload(task, "updated"))
+        if task.status != old_status:
+            fire_webhook("task.status_changed", build_task_payload(task, "status_changed"))
         flash(f"Task '{task.title}' updated.", "success")
         return redirect(url_for("tasks.detail_task", task_id=task.id))
     return render_template(
@@ -129,8 +135,10 @@ def delete_task(task_id):
         flash("Access denied.", "danger")
         return redirect(url_for("tasks.detail_task", task_id=task_id))
     project_id = task.project_id
+    payload = build_task_payload(task, "deleted")
     db.session.delete(task)
     db.session.commit()
+    fire_webhook("task.deleted", payload)
     flash("Task deleted.", "success")
     return redirect(url_for("projects.detail_project", project_id=project_id))
 
@@ -152,6 +160,7 @@ def add_comment(task_id):
         )
         db.session.add(comment)
         db.session.commit()
+        fire_webhook("comment.created", build_comment_payload(comment, "created"))
         flash("Comment added.", "success")
     return redirect(url_for("tasks.detail_task", task_id=task_id))
 
@@ -167,8 +176,12 @@ def update_status(task_id):
     new_status = request.form.get("status") or request.json.get("status")
     if new_status not in ["todo", "in_progress", "review", "done"]:
         return {"error": "invalid status"}, 400
+    old_status = task.status
     task.status = new_status
     db.session.commit()
+    fire_webhook("task.updated", build_task_payload(task, "updated"))
+    if task.status != old_status:
+        fire_webhook("task.status_changed", build_task_payload(task, "status_changed"))
     if request.content_type and "json" in request.content_type:
         return {"ok": True, "status": new_status}
     return redirect(url_for("tasks.detail_task", task_id=task_id))

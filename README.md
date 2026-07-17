@@ -11,6 +11,7 @@ Lightweight project board for homelab use. Docker-based, multi-user, with RBAC a
 - **Auth & RBAC** — admin, owner, editor, viewer roles
 - **Groups** — assign permissions to groups instead of individual users
 - **Per-project permissions** — user or group based, project-level access control
+- **Webhooks** — fire events to Discord, Slack, or any JSON endpoint
 
 ## Quick Start
 

@@ -15,6 +15,7 @@
             {% if current_user.is_authenticated and current_user.can_manage_all_projects() %}
             <a href="{{ url_for('auth.admin_users') }}">Users</a>
             <a href="{{ url_for('auth.admin_groups') }}">Groups</a>
+            <a href="{{ url_for('webhooks.list_webhooks') }}">Webhooks</a>
             {% endif %}
         </div>
         <div class="nav-right">
