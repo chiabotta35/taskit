@@ -1,17 +1,44 @@
 # Taskit
 
-Lightweight project board for homelab use. Docker-based, multi-user, with RBAC and per-project permissions.
+Lightweight project board for homelab use. Docker-based, multi-user, with RBAC, webhooks, and a clean dark UI.
 
 ## Features
 
-- **Projects** — create, edit, archive with status tracking
+### Core
+- **Projects** — create, edit, archive with status tracking, color-coded, task prefixes
 - **Tasks** — assignees, priority levels, status workflow (To Do → In Progress → Review → Done)
-- **Kanban Board** — drag-and-drop task management
-- **Comments** — thread discussion on tasks
-- **Auth & RBAC** — admin, owner, editor, viewer roles
+- **Task Labels** — color-coded labels per project for categorization
+- **Due Dates** — set deadlines with overdue warnings
+- **Task Dependencies** — link blocking/blocked-by relationships
+- **Task Numbering** — display IDs like `TSK-001`
+- **Recurring Tasks** — schedule tasks to repeat on intervals
+- **Bulk Actions** — select multiple tasks and change status/priority/delete
+
+### Views
+- **Kanban Board** — drag-and-drop columns by status
+- **Gantt Timeline** — visual timeline of tasks with dependencies
+- **Dashboard** — overview of your tasks, recent activity, and project stats
+- **Search** — full-text search with filters (status, priority, assignee, project)
+
+### Collaboration
+- **Comments** — threaded discussion on tasks
+- **File Attachments** — attach files to tasks
+- **Activity Log** — audit trail for all project changes
+- **Notifications** — in-app notification panel with read/unread tracking
+
+### Access Control
+- **Auth & RBAC** — login/register, global roles (Admin/Owner), per-project roles (Admin/Editor/Viewer)
 - **Groups** — assign permissions to groups instead of individual users
-- **Per-project permissions** — user or group based, project-level access control
-- **Webhooks** — fire events to Discord, Slack, or any JSON endpoint
+- **Per-project Permissions** — user or group based, project-level access control
+
+### Integrations
+- **Webhooks** — fire JSON events to Discord, Slack, or any endpoint on task/comment/project changes
+
+### UI
+- **Dark Theme** — 8 accent color themes (green, blue, purple, orange, pink, cyan, amber, light)
+- **Collapsible Sidebar** — clean navigation with project list, settings panel, and user profile
+- **Settings Panel** — theme switcher, webhooks, user/group management in the sidebar
+- **Responsive** — works on desktop and tablet
 
 ## Quick Start
 
@@ -52,10 +79,11 @@ This triggers the CI workflow to build and push a Docker image tagged with the v
 
 ## Tech Stack
 
-- Python 3.12 / Flask
-- SQLite (via SQLAlchemy)
+- Python 3.12 / Flask / SQLAlchemy
+- SQLite (file-based, mounted as Docker volume)
 - Jinja2 templates
 - Docker / Gunicorn
+- GitHub Actions CI/CD → GHCR
 
 ## License
 
