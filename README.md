@@ -25,6 +25,20 @@ Access at `http://localhost:5000`.
 
 The admin account is created automatically from your `.env` values on first boot.
 
+## Versioning
+
+The app reads its version from the `VERSION` file, displayed in the nav bar. To release:
+
+```bash
+echo "1.0.0" > VERSION
+git add VERSION
+git commit -m "bump to v1.0.0"
+git tag v1.0.0
+git push origin main --tags
+```
+
+This triggers the CI workflow to build and push a Docker image tagged with the version to GHCR.
+
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -41,15 +55,6 @@ The admin account is created automatically from your `.env` values on first boot
 - SQLite (via SQLAlchemy)
 - Jinja2 templates
 - Docker / Gunicorn
-
-## CI/CD
-
-Push a `v*` tag to build and push a Docker image to GitHub Container Registry:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
 
 ## License
 
