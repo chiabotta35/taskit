@@ -1,7 +1,7 @@
 import os
 import logging
 from pathlib import Path
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_login import LoginManager
 from flask_migrate import Migrate
 
@@ -67,6 +67,10 @@ def create_app():
     app.register_blueprint(tasks_bp)
     app.register_blueprint(kanban_bp)
     app.register_blueprint(webhooks_bp)
+
+    @app.route("/")
+    def index():
+        return redirect(url_for("projects.list_projects"))
 
     @app.context_processor
     def inject_globals():
