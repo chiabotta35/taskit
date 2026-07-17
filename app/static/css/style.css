@@ -283,6 +283,52 @@ h3 { font-size: 0.9rem; font-weight: 600; color: var(--text); }
 .sidebar-settings.active { background: var(--surface); color: var(--text); border-left-color: var(--primary); }
 .sidebar.collapsed .sidebar-settings span { display: none; }
 
+/* Settings panel */
+.settings-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin: 0 8px 4px;
+    border-radius: var(--radius);
+    padding: 10px;
+}
+.settings-panel.open { display: block; }
+.sidebar.collapsed .settings-panel { display: none; }
+
+.settings-panel-header {
+    margin-bottom: 6px;
+}
+
+.settings-theme-grid {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.theme-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.theme-dot:hover { border-color: rgba(255,255,255,0.4); }
+.theme-dot.active { border-color: #fff; }
+
+.settings-panel-link {
+    display: block;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: var(--radius);
+    transition: background 0.15s, color 0.15s;
+}
+.settings-panel-link:hover { background: var(--bg); color: var(--text); }
+.settings-panel-link.active { background: var(--bg); color: var(--text); }
+
 .sidebar-profile {
     padding: 12px 14px;
     display: flex;

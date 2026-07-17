@@ -1,4 +1,4 @@
-# TheYard
+# Taskit
 
 Lightweight project board for homelab use. Docker-based, multi-user, with RBAC and per-project permissions.
 
@@ -16,8 +16,8 @@ Lightweight project board for homelab use. Docker-based, multi-user, with RBAC a
 ## Quick Start
 
 ```bash
-git clone https://github.com/chiabotta35/theyard.git
-cd theyard
+git clone https://github.com/chiabotta35/taskit.git
+cd taskit
 cp .env.example .env   # edit with your values
 docker compose up --build
 ```
@@ -45,7 +45,7 @@ This triggers the CI workflow to build and push a Docker image tagged with the v
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SECRET_KEY` | `change-me-in-production` | Flask secret key |
-| `DATABASE_URL` | `sqlite:///data/theyard.db` | Database URI |
+| `DATABASE_URL` | `sqlite:///data/taskit.db` | Database URI |
 | `ADMIN_USERNAME` | `admin` | Initial admin username |
 | `ADMIN_EMAIL` | `admin@example.com` | Initial admin email |
 | `ADMIN_PASSWORD` | `changeme` | Initial admin password |

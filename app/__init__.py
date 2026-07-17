@@ -12,7 +12,7 @@ from .models import db, User
 logger = logging.getLogger(__name__)
 
 _version_file = Path(__file__).resolve().parent.parent.joinpath("VERSION")
-_raw_version = os.environ.get("THEYARD_VERSION") or (
+_raw_version = os.environ.get("TASKIT_VERSION") or (
     _version_file.read_text().strip() if _version_file.exists() else "dev"
 )
 VERSION = _raw_version.lstrip("v")

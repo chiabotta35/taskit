@@ -1,7 +1,7 @@
 services:
   web:
-    image: ghcr.io/chiabotta35/theyard:latest
-    container_name: theyard
+    image: ghcr.io/chiabotta35/taskit:latest
+    container_name: taskit
     restart: unless-stopped
     pull_policy: always
     ports:
@@ -10,7 +10,7 @@ services:
       - ./data:/app/data
     environment:
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
-      - DATABASE_URL=sqlite:////app/data/theyard.db
+      - DATABASE_URL=sqlite:////app/data/taskit.db
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}

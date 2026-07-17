@@ -53,7 +53,7 @@ jobs:
           context: .
           push: true
           build-args: |
-            THEYARD_VERSION=${{ steps.version.outputs.version }}
+            TASKIT_VERSION=${{ steps.version.outputs.version }}
           tags: |
             ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}:latest
             ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.version }}

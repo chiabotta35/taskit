@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}TheYard{% endblock %}</title>
+    <title>{% block title %}Taskit{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
                     <rect x="8" y="8" width="5" height="2" fill="#080808"/>
                 </svg>
             </div>
-            <span class="sidebar-logo-text">theyard</span>
+            <span class="sidebar-logo-text">taskit</span>
         </div>
 
         <nav class="sidebar-nav">
@@ -34,15 +34,6 @@
                 </svg>
                 <span>Dashboard</span>
             </a>
-            {% if current_user.can_manage_all_projects() %}
-            <a href="{{ url_for('auth.admin_users') }}" class="sidebar-nav-item {% if request.endpoint and ('admin' in request.endpoint or 'auth.admin' in request.endpoint) %}active{% endif %}">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <circle cx="5" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/>
-                    <path d="M1 12c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                </svg>
-                <span>Administration</span>
-            </a>
-            {% endif %}
         </nav>
 
         <div class="sidebar-projects" id="sidebar-projects">
@@ -66,15 +57,40 @@
         </div>
 
         <div class="sidebar-bottom">
-            {% if current_user.can_manage_all_projects() %}
-            <a href="{{ url_for('webhooks.list_webhooks') }}" class="sidebar-settings {% if request.endpoint and 'webhook' in request.endpoint %}active{% endif %}">
+            <a href="{{ url_for('auth.profile') }}" class="sidebar-settings" id="settings-btn" onclick="event.preventDefault(); document.getElementById('settings-panel').classList.toggle('open');">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"/>
                     <path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.93 2.93l1.41 1.41M9.66 9.66l1.41 1.41M2.93 11.07l1.41-1.41M9.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
                 </svg>
                 <span>Settings</span>
             </a>
-            {% endif %}
+
+            <!-- Settings Panel -->
+            <div class="settings-panel" id="settings-panel">
+                <div class="settings-panel-header">
+                    <span class="mono-label" style="color:var(--text-dim)">THEME</span>
+                </div>
+                <div class="settings-theme-grid">
+                    <button class="theme-dot" style="background:#00e676" onclick="setTheme('green')" title="Green"></button>
+                    <button class="theme-dot" style="background:#2979ff" onclick="setTheme('blue')" title="Blue"></button>
+                    <button class="theme-dot" style="background:#ab47bc" onclick="setTheme('purple')" title="Purple"></button>
+                    <button class="theme-dot" style="background:#ff7043" onclick="setTheme('orange')" title="Orange"></button>
+                    <button class="theme-dot" style="background:#ec407a" onclick="setTheme('pink')" title="Pink"></button>
+                    <button class="theme-dot" style="background:#26c6da" onclick="setTheme('cyan')" title="Cyan"></button>
+                    <button class="theme-dot" style="background:#ffa726" onclick="setTheme('amber')" title="Amber"></button>
+                    <button class="theme-dot" style="background:#e0e0e0" onclick="setTheme('light')" title="Light"></button>
+                </div>
+                <div class="settings-panel-header" style="margin-top:8px">
+                    <span class="mono-label" style="color:var(--text-dim)">MANAGE</span>
+                </div>
+                <a href="{{ url_for('auth.profile') }}" class="settings-panel-link {% if request.endpoint and 'profile' in request.endpoint %}active{% endif %}">Profile</a>
+                <a href="{{ url_for('webhooks.list_webhooks') }}" class="settings-panel-link {% if request.endpoint and 'webhook' in request.endpoint %}active{% endif %}">Webhooks</a>
+                {% if current_user.can_manage_all_projects() %}
+                <a href="{{ url_for('auth.admin_users') }}" class="settings-panel-link {% if request.endpoint and ('admin_users' in request.endpoint or 'auth.admin' in request.endpoint) %}active{% endif %}">Users</a>
+                <a href="{{ url_for('auth.admin_groups') }}" class="settings-panel-link {% if request.endpoint and 'admin_group' in request.endpoint %}active{% endif %}">Groups</a>
+                {% endif %}
+            </div>
+
             <div class="sidebar-profile">
                 <div class="avatar" style="background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.33);color:#00e676;font-family:var(--mono);font-size:9px;font-weight:600">
                     {{ current_user.username[:2]|upper }}
@@ -160,7 +176,7 @@ function toggleSidebar() {
     const main = document.getElementById('main-content');
     sidebar.classList.toggle('collapsed');
     main.classList.toggle('sidebar-closed');
-    localStorage.setItem('theyard-sidebar-collapsed', sidebar.classList.contains('collapsed'));
+    localStorage.setItem('taskit-sidebar-collapsed', sidebar.classList.contains('collapsed'));
 }
 function toggleNotifications() {
     const panel = document.getElementById('notif-panel');
@@ -172,14 +188,19 @@ document.addEventListener('click', function(e) {
     if (panel && bell && !bell.contains(e.target) && !panel.contains(e.target)) {
         panel.style.display = 'none';
     }
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsPanel = document.getElementById('settings-panel');
+    if (settingsPanel && settingsBtn && !settingsBtn.contains(e.target) && !settingsPanel.contains(e.target)) {
+        settingsPanel.classList.remove('open');
+    }
 });
 function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theyard-theme', theme);
+    localStorage.setItem('taskit-theme', theme);
     fetch('/auth/theme/' + theme, {method: 'POST', headers: {'Content-Type': 'application/json'}});
 }
 (function() {
-    if (localStorage.getItem('theyard-sidebar-collapsed') === 'true') {
+    if (localStorage.getItem('taskit-sidebar-collapsed') === 'true') {
         const s = document.getElementById('sidebar');
         const m = document.getElementById('main-content');
         if (s) s.classList.add('collapsed');

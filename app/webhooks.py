@@ -28,7 +28,7 @@ def _send_one(webhook, event, payload):
 
     headers = {
         "Content-Type": "application/json",
-        "User-Agent": "TheYard-Webhook/1.0",
+        "User-Agent": "Taskit-Webhook/1.0",
         "X-Webhook-Event": event,
     }
     if webhook.secret:
