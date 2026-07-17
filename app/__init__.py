@@ -7,7 +7,10 @@ from flask_migrate import Migrate
 from .config import Config
 from .models import db, User
 
-VERSION = Path(__file__).resolve().parent.parent.joinpath("VERSION").read_text().strip()
+_version_file = Path(__file__).resolve().parent.parent.joinpath("VERSION")
+VERSION = os.environ.get("THEYARD_VERSION") or (
+    _version_file.read_text().strip() if _version_file.exists() else "dev"
+)
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"

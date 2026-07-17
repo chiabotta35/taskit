@@ -11,8 +11,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /app/data
+ARG THEYARD_VERSION=dev
+ENV THEYARD_VERSION=${THEYARD_VERSION}
+
+RUN mkdir -p /app/data && python seed.py
 
 EXPOSE 5000
 
-ENTRYPOINT ["sh", "-c", "python seed.py && exec gunicorn -b 0.0.0.0:5000 -w 2 --timeout 120 wsgi:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "-w", "2", "--timeout", "120", "wsgi:app"]

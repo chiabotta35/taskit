@@ -1,7 +1,9 @@
 services:
   web:
-    build: .
     image: ghcr.io/chiabotta35/theyard:latest
+    build: .
+    container_name: theyard
+    restart: unless-stopped
     ports:
       - "5000:5000"
     volumes:
@@ -12,4 +14,4 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}
-    restart: unless-stopped
+      - THEYARD_VERSION=${THEYARD_VERSION:-dev}
