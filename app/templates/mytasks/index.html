@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}My Tasks — Taskit{% endblock %}
+{% block topbar %}
+<div class="topbar">
+    <div class="topbar-project-name">My Tasks</div>
+    <div class="topbar-right">
+        <select onchange="if(this.value)location.href='?status='+this.value;else location.href='?'" class="mono-input btn btn-ghost btn-sm">
+            <option value="">All Status</option>
+            <option value="todo" {% if status_filter == 'todo' %}selected{% endif %}>To Do</option>
+            <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+            <option value="review" {% if status_filter == 'review' %}selected{% endif %}>Review</option>
+            <option value="done" {% if status_filter == 'done' %}selected{% endif %}>Done</option>
+        </select>
+        <select onchange="if(this.value)location.href='?priority='+this.value;else location.href='?'" class="mono-input btn btn-ghost btn-sm">
+            <option value="">All Priority</option>
+            <option value="critical" {% if priority_filter == 'critical' %}selected{% endif %}>Critical</option>
+            <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
+            <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Medium</option>
+            <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
+        </select>
+        {% if status_filter or priority_filter %}
+        <a href="{{ url_for('mytasks.index') }}" class="btn btn-ghost btn-sm">Clear</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="content">
+    {% if overdue %}
+    <div class="section-header">
+        <span class="mono-label" style="color:var(--danger)">Overdue ({{ overdue|length }})</span>
+    </div>
+    <div style="margin-bottom:1.5rem;border:1px solid var(--danger);border-radius:2px;overflow-x:auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Project</th>
+                    <th>Priority</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in overdue %}
+                <tr>
+                    <td><span class="mono-label">{{ task.display_id }}</span></td>
+                    <td><a href="{{ url_for('tasks.detail_task', task_id=task.id) }}" style="color:var(--danger)">{{ task.title }}</a></td>
+                    <td><a href="{{ url_for('kanban.board', project_id=task.project_id) }}">{{ task.project.name }}</a></td>
+                    <td><span class="task-label task-label-{{ task.priority }}">{{ task.priority }}</span></td>
+                    <td><span class="mono-label" style="color:var(--danger)">{{ task.due_date.strftime('%b %d') }}</span></td>
+                    <td><span class="task-label task-label-{{ task.status }}">{{ task.status.replace('_', ' ') }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="section-header">
+        <span class="mono-label">All Tasks ({{ tasks|length }})</span>
+    </div>
+
+    {% if tasks %}
+    <div style="overflow-x:auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Project</th>
+                    <th>Priority</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td><span class="mono-label">{{ task.display_id }}</span></td>
+                    <td><a href="{{ url_for('tasks.detail_task', task_id=task.id) }}">{{ task.title }}</a></td>
+                    <td><a href="{{ url_for('kanban.board', project_id=task.project_id) }}">{{ task.project.name }}</a></td>
+                    <td><span class="task-label task-label-{{ task.priority }}">{{ task.priority }}</span></td>
+                    <td>
+                        {% if task.due_date %}
+                        <span class="mono-label" style="color:{% if task.due_date.isoformat() < now %}var(--danger){% elif task.due_date.isoformat() == now %}var(--orange){% else %}var(--text-muted){% endif %}">
+                            {{ task.due_date.strftime('%b %d') }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td><span class="task-label task-label-{{ task.status }}">{{ task.status.replace('_', ' ') }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">No tasks assigned to you</div>
+    {% endif %}
+</div>
+{% endblock %}

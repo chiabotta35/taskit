@@ -103,6 +103,10 @@ def create_app():
     from .recurring import recurring_bp
     from .dashboard import dashboard_bp
     from .gantt import gantt_bp
+    from .mytasks import mytasks_bp
+    from .global_gantt import global_gantt_bp
+    from .reports import reports_bp
+    from .templates_mod import templates_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(projects_bp)
@@ -113,6 +117,10 @@ def create_app():
     app.register_blueprint(recurring_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(gantt_bp)
+    app.register_blueprint(mytasks_bp)
+    app.register_blueprint(global_gantt_bp)
+    app.register_blueprint(reports_bp)
+    app.register_blueprint(templates_bp)
 
     @app.route("/")
     def index():

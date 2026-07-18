@@ -399,6 +399,23 @@ class Notification(db.Model):
     user = db.relationship("User", backref="notifications")
 
 
+class TaskTemplate(db.Model):
+    __tablename__ = "task_templates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, default="")
+    priority = db.Column(db.String(20), nullable=False, default="medium")
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    is_global = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    creator = db.relationship("User", backref="task_templates")
+
+
 def log_activity(project_id, user_id, action, entity_type, entity_id, entity_name, detail=None):
     entry = ActivityLog(
         project_id=project_id,

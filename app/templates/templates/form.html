@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Edit Template{% else %}New Template{% endif %} — Taskit{% endblock %}
+{% block topbar %}
+<div class="topbar">
+    <div class="topbar-project-name">{% if editing %}Edit: {{ template.name }}{% else %}New Template{% endif %}</div>
+    <div class="topbar-right">
+        <a href="{{ url_for('templates.index') }}" class="btn btn-ghost btn-sm">Back</a>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="content" style="max-width:560px">
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            <label class="mono-label" for="name">Template Name</label>
+            {{ form.name(id="name", placeholder="e.g. Bug Report") }}
+            {% for e in form.name.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+            <label class="mono-label" for="title">Task Title</label>
+            {{ form.title(id="title", placeholder="task title when created from this template") }}
+            {% for e in form.title.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+            <label class="mono-label" for="description">Description</label>
+            {{ form.description(id="description", rows=4, placeholder="task description (optional)") }}
+        </div>
+        <div class="form-group">
+            <label class="mono-label" for="priority">Priority</label>
+            {{ form.priority(id="priority") }}
+        </div>
+        {% if current_user.can_manage_all_projects() %}
+        <div class="form-group">
+            <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.8rem;color:var(--text-secondary)">
+                {{ form.is_global() }} Global — visible to all users
+            </label>
+        </div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary">{% if editing %}Save Changes{% else %}Create Template{% endif %}</button>
+    </form>
+</div>
+{% endblock %}

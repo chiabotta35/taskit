@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Timeline — Taskit{% endblock %}
+{% block topbar %}
+<div class="topbar">
+    <div class="topbar-project-name">Timeline</div>
+    <div class="topbar-right">
+        <span class="mono-label" style="color:var(--text-muted)">{{ tasks|length }} tasks</span>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="content">
+    {% if task_bars %}
+    <div class="gantt-container">
+        <div class="gantt-header">
+            <div class="gantt-label">Task</div>
+            <div class="gantt-bar-container" style="display:flex">
+                {% for day in days %}
+                <div class="gantt-day {% if day.isoformat() == today %}today{% endif %}">{{ day.strftime('%d') }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% for item in task_bars %}
+        <div class="gantt-row">
+            <div class="gantt-label">
+                <a href="{{ url_for('tasks.detail_task', task_id=item.task.id) }}" style="font-size:0.75rem">{{ item.task.display_id }} {{ item.task.title }}</a>
+                <span style="font-size:0.6rem;color:var(--text-dim);margin-left:0.3rem">{{ item.task.project.name }}</span>
+                <span class="task-label task-label-{{ item.task.status }}" style="margin-left:0.3rem;font-size:0.55rem;padding:0.1rem 0.3rem">{{ item.task.status.replace('_', ' ') }}</span>
+            </div>
+            <div class="gantt-bar-container" style="position:relative">
+                <div class="gantt-bar" style="left:{{ item.left }}px;width:{{ item.width }}px;background:{{ item.color }}">
+                    {{ item.task.title }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        <div style="position:relative;height:0">
+            <div style="position:absolute;left:{{ today_offset }}px;top:0;width:2px;height:100%;background:var(--danger);z-index:5"></div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No tasks with due dates across your projects</p>
+        <p style="font-size:0.75rem;margin-top:0.25rem;color:var(--text-muted)">Add due dates to tasks to see them on the timeline</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

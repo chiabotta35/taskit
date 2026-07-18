@@ -34,6 +34,34 @@
                 </svg>
                 <span>Dashboard</span>
             </a>
+            <a href="{{ url_for('mytasks.index') }}" class="sidebar-nav-item {% if request.endpoint and 'mytasks' in request.endpoint %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <rect x="2" y="2" width="10" height="10" rx="1" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M5 5l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>My Tasks</span>
+            </a>
+            <a href="{{ url_for('global_gantt.view') }}" class="sidebar-nav-item {% if request.endpoint and 'global_gantt' in request.endpoint %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <rect x="1" y="3" width="12" height="2" rx="1" stroke="currentColor" stroke-width="1.2"/>
+                    <rect x="3" y="6.5" width="8" height="2" rx="1" stroke="currentColor" stroke-width="1.2"/>
+                    <rect x="5" y="10" width="6" height="2" rx="1" stroke="currentColor" stroke-width="1.2"/>
+                </svg>
+                <span>Timeline</span>
+            </a>
+            <a href="{{ url_for('reports.index') }}" class="sidebar-nav-item {% if request.endpoint and 'reports' in request.endpoint %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 10l3-4 3 2 3-5 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Reports</span>
+            </a>
+            <a href="{{ url_for('templates.index') }}" class="sidebar-nav-item {% if request.endpoint and 'templates' in request.endpoint %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <rect x="2" y="1" width="10" height="12" rx="1" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M5 4h4M5 7h4M5 10h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+                <span>Templates</span>
+            </a>
         </nav>
 
         <div class="sidebar-projects" id="sidebar-projects">

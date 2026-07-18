@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Templates — Taskit{% endblock %}
+{% block topbar %}
+<div class="topbar">
+    <div class="topbar-project-name">Templates</div>
+    <div class="topbar-right">
+        <a href="{{ url_for('templates.create') }}" class="btn btn-primary btn-sm">+ Template</a>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="content">
+    {% if templates %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Title</th>
+                <th>Priority</th>
+                <th>Scope</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tmpl in templates %}
+            <tr>
+                <td style="font-weight:500">{{ tmpl.name }}</td>
+                <td>{{ tmpl.title }}</td>
+                <td><span class="task-label task-label-{{ tmpl.priority }}">{{ tmpl.priority }}</span></td>
+                <td>
+                    {% if tmpl.is_global %}
+                    <span class="mono-label" style="color:var(--primary)">Global</span>
+                    {% else %}
+                    <span class="mono-label" style="color:var(--text-dim)">Personal</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display:flex;gap:0.25rem">
+                        {% if sidebar_projects %}
+                        <div class="dropdown" style="position:relative">
+                            <button class="btn btn-ghost btn-xs" onclick="this.nextElementSibling.classList.toggle('open')">Use</button>
+                            <div class="dropdown-menu" style="display:none;position:absolute;top:100%;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);z-index:50;min-width:160px;padding:4px">
+                                {% for p in sidebar_projects %}
+                                {% set role = current_user.get_highest_project_role(p.id) %}
+                                {% if role in ['admin', 'editor'] %}
+                                <a href="{{ url_for('templates.use_template', template_id=tmpl.id, project_id=p.id) }}" class="settings-panel-link">{{ p.name }}</a>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if tmpl.created_by == current_user.id or current_user.can_manage_all_projects() %}
+                        <a href="{{ url_for('templates.edit', template_id=tmpl.id) }}" class="btn btn-ghost btn-xs">Edit</a>
+                        <form method="POST" action="{{ url_for('templates.delete', template_id=tmpl.id) }}" style="display:inline" onsubmit="return confirm('Delete this template?')">
+                            <button type="submit" class="btn btn-ghost btn-xs" style="color:var(--danger)">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No templates yet</p>
+        <p style="font-size:0.75rem;margin-top:0.25rem;color:var(--text-muted)">Create templates to quickly spawn tasks from predefined configs</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('click', function(e) {
+    document.querySelectorAll('.dropdown-menu.open').forEach(function(menu) {
+        if (!menu.parentElement.contains(e.target)) {
+            menu.classList.remove('open');
+        }
+    });
+});
+</script>
+{% endblock %}

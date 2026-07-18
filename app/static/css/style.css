@@ -1914,3 +1914,7 @@ h3 { font-size: 0.9rem; font-weight: 600; color: var(--text); }
     --purple: #c084fc;
     --blue: #38bdf8;
 }
+
+/* Dropdown */
+.dropdown-menu { display: none; }
+.dropdown-menu.open { display: block; }
