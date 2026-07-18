@@ -76,10 +76,14 @@ def detail_task(task_id):
     blocked_by_tasks = [d.blocked_by for d in task.blocking]
     blocking_tasks = [d.task for d in task.blocks]
     attachments = task.attachments
+    from ..models import Subtask, TimeEntry
+    subtasks = Subtask.query.filter_by(task_id=task_id).order_by(Subtask.position).all()
+    time_entries = TimeEntry.query.filter_by(task_id=task_id).order_by(TimeEntry.started_at.desc()).all()
     return render_template(
         "tasks/detail.html", task=task, form=form, comments=comments,
         task_labels=task_labels, blocked_by_tasks=blocked_by_tasks,
         blocking_tasks=blocking_tasks, attachments=attachments,
+        subtasks=subtasks, time_entries=time_entries,
     )
 
 
@@ -392,3 +396,51 @@ def bulk_action():
         db.session.commit()
         flash(f"Reassigned {len(tasks)} task(s).", "success")
     return redirect(url_for("projects.detail_project", project_id=project_id))
+
+
+# ── Subtasks ──
+
+@tasks_bp.route("/<int:task_id>/subtask", methods=["POST"])
+@login_required
+def add_subtask(task_id):
+    task = db.session.get(Task, task_id)
+    if not task or not current_user.has_project_permission(task.project_id, "editor"):
+        flash("Access denied.", "danger")
+        return redirect(url_for("dashboard.index"))
+    title = request.form.get("title", "").strip()
+    if not title:
+        flash("Subtask title is required.", "warning")
+        return redirect(url_for("tasks.detail_task", task_id=task_id))
+    from ..models import Subtask
+    max_pos = db.session.query(db.func.max(Subtask.position)).filter_by(task_id=task_id).scalar()
+    sub = Subtask(task_id=task_id, title=title, position=(max_pos or 0) + 1)
+    db.session.add(sub)
+    db.session.commit()
+    return redirect(url_for("tasks.detail_task", task_id=task_id))
+
+
+@tasks_bp.route("/subtask/<int:subtask_id>/toggle", methods=["POST"])
+@login_required
+def toggle_subtask(subtask_id):
+    from ..models import Subtask
+    sub = db.session.get(Subtask, subtask_id)
+    if not sub:
+        flash("Not found.", "danger")
+        return redirect(url_for("dashboard.index"))
+    sub.is_done = not sub.is_done
+    db.session.commit()
+    return redirect(url_for("tasks.detail_task", task_id=sub.task_id))
+
+
+@tasks_bp.route("/subtask/<int:subtask_id>/delete", methods=["POST"])
+@login_required
+def delete_subtask(subtask_id):
+    from ..models import Subtask
+    sub = db.session.get(Subtask, subtask_id)
+    if not sub:
+        flash("Not found.", "danger")
+        return redirect(url_for("dashboard.index"))
+    task_id = sub.task_id
+    db.session.delete(sub)
+    db.session.commit()
+    return redirect(url_for("tasks.detail_task", task_id=task_id))

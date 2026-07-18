@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Aging Settings — {{ project.name }}{% endblock %}
+{% block content %}
+<div class="content-area">
+  <div style="max-width:600px">
+    <div style="margin-bottom:1.5rem">
+      <a href="{{ url_for('projects.detail_project', project_id=project.id) }}" style="color:var(--text-secondary);font-size:12px">&larr; {{ project.name }}</a>
+      <h1 class="page-title" style="margin-top:0.5rem">Aging Settings</h1>
+    </div>
+    <form method="POST" class="form-card" style="padding:1.5rem">
+      {{ form.hidden_tag() if form else '' }}
+      <label class="form-label">
+        <input type="checkbox" name="enabled" {% if setting and setting.enabled %}checked{% endif %}> Enable task aging alerts
+      </label>
+      <div style="margin-bottom:1rem">
+        <label class="form-label">Notify after (days)</label>
+        <input type="number" name="days_threshold" class="form-input" value="{{ setting.days_threshold if setting else 3 }}" min="1" style="width:100px">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label class="form-label">Webhook URL (optional)</label>
+        <input type="url" name="webhook_url" class="form-input" value="{{ setting.webhook_url if setting and setting.webhook_url else '' }}" placeholder="https://...">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label class="form-label">
+          <input type="checkbox" name="notify_assignee" {% if not setting or setting.notify_assignee %}checked{% endif %}> Notify assignee
+        </label>
+      </div>
+      <div style="margin-bottom:1.5rem">
+        <label class="form-label">
+          <input type="checkbox" name="notify_owner" {% if not setting or setting.notify_owner %}checked{% endif %}> Notify project owner
+        </label>
+      </div>
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

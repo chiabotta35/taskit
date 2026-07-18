@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Assets — Taskit{% endblock %}
+{% block topbar %}
+<div class="topbar">
+    <div class="topbar-project-name">Assets</div>
+    <div class="topbar-right">
+        <select onchange="if(this.value)location.href='?type='+this.value;else location.href='?'" class="mono-input btn btn-ghost btn-sm">
+            <option value="">All Types</option>
+            {% for t in asset_types %}
+            <option value="{{ t }}" {% if type_filter == t %}selected{% endif %}>{{ t.title() }}</option>
+            {% endfor %}
+        </select>
+        <a href="{{ url_for('assets.create') }}" class="btn btn-primary btn-sm">+ Asset</a>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="content">
+    {% if assets %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>IP</th>
+                <th>Location</th>
+                <th>Project</th>
+                <th>Status</th>
+                <th>Warranty</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in assets %}
+            <tr>
+                <td><a href="{{ url_for('assets.edit', asset_id=a.id) }}" style="font-weight:500">{{ a.name }}</a></td>
+                <td><span class="mono-label">{{ a.asset_type }}</span></td>
+                <td><span class="mono-label">{% if a.ip_address %}{{ a.ip_address }}{% else %}—{% endif %}</span></td>
+                <td>{% if a.location %}{{ a.location }}{% else %}<span style="color:var(--text-dim)">—</span>{% endif %}</td>
+                <td>{% if a.project %}{{ a.project.name }}{% else %}<span style="color:var(--text-dim)">—</span>{% endif %}</td>
+                <td><span class="task-label task-label-{{ a.status }}">{{ a.status }}</span></td>
+                <td>
+                    {% if a.warranty_date %}
+                    <span class="mono-label" style="color:{% if a.warranty_date.isoformat() < now %}var(--danger){% else %}var(--text-muted){% endif %}">
+                        {{ a.warranty_date.strftime('%b %Y') }}
+                    </span>
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No assets tracked</p>
+        <p style="font-size:0.75rem;margin-top:0.25rem;color:var(--text-muted)">Add hardware, servers, licenses, and other assets to track them</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

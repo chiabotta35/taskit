@@ -62,6 +62,21 @@
                 </svg>
                 <span>Templates</span>
             </a>
+            <a href="{{ url_for('assets.index') }}" class="sidebar-nav-item {% if request.endpoint and 'assets' in request.endpoint %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <rect x="2" y="4" width="10" height="8" rx="1" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M4 4V3a1 1 0 011-1h4a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.2"/>
+                    <path d="M5 8h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+                <span>Assets</span>
+            </a>
+            <a href="{{ url_for('recurring.list_recurring') }}" class="sidebar-nav-item {% if request.endpoint and 'recurring' in request.endpoint %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M11 4A5 5 0 103 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                    <path d="M3 2v3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Recurring</span>
+            </a>
         </nav>
 
         <div class="sidebar-projects" id="sidebar-projects">

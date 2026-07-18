@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{% if editing %}Edit: {{ asset.name }}{% else %}New Asset{% endif %} — Taskit{% endblock %}
+{% block topbar %}
+<div class="topbar">
+    <div class="topbar-project-name">{% if editing %}Edit Asset{% else %}New Asset{% endif %}</div>
+    <div class="topbar-right">
+        <a href="{{ url_for('assets.index') }}" class="btn btn-ghost btn-sm">Back</a>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="content" style="max-width:560px">
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            <label class="mono-label" for="name">Name</label>
+            {{ form.name(id="name", placeholder="e.g. Server 01") }}
+            {% for e in form.name.errors %}<div class="errors">{{ e }}</div>{% endfor %}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+            <div class="form-group">
+                <label class="mono-label" for="asset_type">Type</label>
+                {{ form.asset_type(id="asset_type") }}
+            </div>
+            <div class="form-group">
+                <label class="mono-label" for="status">Status</label>
+                {{ form.status(id="status") }}
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="mono-label" for="project_id">Project</label>
+            {{ form.project_id(id="project_id") }}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+            <div class="form-group">
+                <label class="mono-label" for="ip_address">IP Address</label>
+                {{ form.ip_address(id="ip_address", placeholder="192.168.1.100") }}
+            </div>
+            <div class="form-group">
+                <label class="mono-label" for="serial_number">Serial Number</label>
+                {{ form.serial_number(id="serial_number") }}
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="mono-label" for="location">Location</label>
+            {{ form.location(id="location", placeholder="e.g. Rack 2, Shelf 1") }}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+            <div class="form-group">
+                <label class="mono-label" for="purchase_date">Purchase Date</label>
+                {{ form.purchase_date(id="purchase_date") }}
+            </div>
+            <div class="form-group">
+                <label class="mono-label" for="warranty_date">Warranty Expiry</label>
+                {{ form.warranty_date(id="warranty_date") }}
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="mono-label" for="notes">Notes</label>
+            {{ form.notes(id="notes", rows=3) }}
+        </div>
+        <div style="display:flex;gap:0.5rem">
+            <button type="submit" class="btn btn-primary">{% if editing %}Save Changes{% else %}Create Asset{% endif %}</button>
+            {% if editing %}
+            <form method="POST" action="{{ url_for('assets.delete', asset_id=asset.id) }}" style="display:inline" onsubmit="return confirm('Delete this asset?')">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}

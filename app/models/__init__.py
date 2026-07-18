@@ -416,6 +416,159 @@ class TaskTemplate(db.Model):
     creator = db.relationship("User", backref="task_templates")
 
 
+class TaskAgingConfig(db.Model):
+    __tablename__ = "task_aging_configs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    notify_assignee = db.Column(db.Boolean, default=True, nullable=False)
+    notify_owner = db.Column(db.Boolean, default=True, nullable=False)
+    notify_webhook = db.Column(db.Boolean, default=True, nullable=False)
+    days_threshold = db.Column(db.Integer, default=3, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    project = db.relationship("Project", backref="aging_configs")
+    user = db.relationship("User", backref="aging_configs")
+
+
+class TaskAgingLog(db.Model):
+    __tablename__ = "task_aging_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey("tasks.id"), nullable=False)
+    status_at_check = db.Column(db.String(20), nullable=False)
+    days_stuck = db.Column(db.Integer, nullable=False)
+    notified_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    task = db.relationship("Task", backref="aging_logs")
+
+
+class Subtask(db.Model):
+    __tablename__ = "subtasks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey("tasks.id"), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    is_done = db.Column(db.Boolean, default=False, nullable=False)
+    position = db.Column(db.Integer, default=0, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    task = db.relationship("Task", backref="subtasks")
+
+
+class TimeEntry(db.Model):
+    __tablename__ = "time_entries"
+
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey("tasks.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    started_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    ended_at = db.Column(db.DateTime, nullable=True)
+    duration_seconds = db.Column(db.Integer, default=0, nullable=False)
+    is_paused = db.Column(db.Boolean, default=False, nullable=False)
+
+    task = db.relationship("Task", backref="time_entries")
+    user = db.relationship("User", backref="time_entries")
+
+    @property
+    def total_hours(self):
+        return round(self.duration_seconds / 3600, 1)
+
+
+class Asset(db.Model):
+    __tablename__ = "assets"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True)
+    name = db.Column(db.String(120), nullable=False)
+    asset_type = db.Column(db.String(50), nullable=False, default="hardware")
+    ip_address = db.Column(db.String(50), nullable=True)
+    location = db.Column(db.String(200), nullable=True)
+    serial_number = db.Column(db.String(120), nullable=True)
+    purchase_date = db.Column(db.Date, nullable=True)
+    warranty_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default="active")
+    notes = db.Column(db.Text, default="")
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    project = db.relationship("Project", backref="assets")
+
+
+class ApiToken(db.Model):
+    __tablename__ = "api_tokens"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    name = db.Column(db.String(80), nullable=False)
+    token_hash = db.Column(db.String(128), nullable=False, unique=True)
+    prefix = db.Column(db.String(8), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    last_used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    user = db.relationship("User", backref="api_tokens")
+
+
+class TaskType(db.Model):
+    __tablename__ = "task_types"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=True)
+    name = db.Column(db.String(40), nullable=False)
+    icon = db.Column(db.String(10), default=".")
+    color = db.Column(db.String(30), default="var(--primary)")
+    is_global = db.Column(db.Boolean, default=False, nullable=False)
+
+    project = db.relationship("Project", backref="task_types")
+
+
+class ProjectStatus(db.Model):
+    __tablename__ = "project_statuses"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False)
+    name = db.Column(db.String(40), nullable=False)
+    slug = db.Column(db.String(40), nullable=False)
+    color = db.Column(db.String(30), default="var(--text-muted)")
+    position = db.Column(db.Integer, default=0, nullable=False)
+
+    project = db.relationship("Project", backref="custom_statuses")
+
+    __table_args__ = (
+        db.UniqueConstraint("project_id", "slug", name="uq_project_status_slug"),
+    )
+
+
+class ProjectAgingSetting(db.Model):
+    __tablename__ = "project_aging_settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"), nullable=False, unique=True)
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+    days_threshold = db.Column(db.Integer, default=3, nullable=False)
+    webhook_url = db.Column(db.String(500), nullable=True)
+    notify_assignee = db.Column(db.Boolean, default=True, nullable=False)
+    notify_owner = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    project = db.relationship("Project", backref="aging_setting")
+
+
 def log_activity(project_id, user_id, action, entity_type, entity_id, entity_name, detail=None):
     entry = ActivityLog(
         project_id=project_id,

@@ -297,3 +297,43 @@ def project_activity(project_id):
     return render_template(
         "projects/activity.html", project=project, activities=activities
     )
+
+
+@projects_bp.route("/<int:project_id>/aging", methods=["GET", "POST"])
+@login_required
+def project_aging(project_id):
+    project = db.session.get(Project, project_id)
+    if not project:
+        flash("Project not found.", "danger")
+        return redirect(url_for("projects.list_projects"))
+    if not current_user.has_project_permission(project_id, "owner"):
+        flash("Only project owners can configure aging.", "danger")
+        return redirect(url_for("projects.detail_project", project_id=project_id))
+    from ..models import ProjectAgingSetting
+    setting = ProjectAgingSetting.query.filter_by(project_id=project_id).first()
+    if request.method == "POST":
+        enabled = request.form.get("enabled") == "on"
+        days = int(request.form.get("days_threshold", 3))
+        webhook_url = request.form.get("webhook_url", "").strip() or None
+        notify_assignee = request.form.get("notify_assignee") == "on"
+        notify_owner = request.form.get("notify_owner") == "on"
+        if setting:
+            setting.enabled = enabled
+            setting.days_threshold = days
+            setting.webhook_url = webhook_url
+            setting.notify_assignee = notify_assignee
+            setting.notify_owner = notify_owner
+        else:
+            setting = ProjectAgingSetting(
+                project_id=project_id,
+                enabled=enabled,
+                days_threshold=days,
+                webhook_url=webhook_url,
+                notify_assignee=notify_assignee,
+                notify_owner=notify_owner,
+            )
+            db.session.add(setting)
+        db.session.commit()
+        flash("Aging settings updated.", "success")
+        return redirect(url_for("projects.detail_project", project_id=project_id))
+    return render_template("projects/aging.html", project=project, setting=setting)

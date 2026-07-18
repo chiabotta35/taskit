@@ -12,6 +12,10 @@
     <div class="topbar-right">
         {% set role = current_user.get_highest_project_role(task.project_id) %}
         {% if role in ['admin', 'editor'] %}
+        <button id="timer-btn" class="btn btn-ghost btn-sm" onclick="toggleTimer()" title="Start tracking time">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M6 3v3l2 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <span id="timer-label">Timer</span>
+        </button>
         <a href="{{ url_for('tasks.edit_task', task_id=task.id) }}" class="btn btn-ghost btn-sm">EDIT</a>
         {% endif %}
         {% if role == 'admin' %}
@@ -107,6 +111,61 @@
     <p style="white-space:pre-wrap;color:var(--text-secondary);font-size:0.8rem;line-height:1.7;max-width:600px">{{ task.description }}</p>
     {% endif %}
 
+    <!-- Subtasks -->
+    <div class="section-header" style="margin-top:24px">SUBTASKS <span style="color:var(--text-dim)">({{ subtasks|selectattr('is_done')|list|length }}/{{ subtasks|length }})</span></div>
+    <div style="max-width:600px">
+        {% for sub in subtasks %}
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-subtle)">
+            <form method="POST" action="{{ url_for('tasks.toggle_subtask', subtask_id=sub.id) }}" style="display:inline">
+                <button type="submit" style="background:none;border:none;cursor:pointer;padding:0">
+                    {% if sub.is_done %}
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="var(--primary)"/><path d="M4 7l2 2 4-4" stroke="#080808" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    {% else %}
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="var(--text-dim)" stroke-width="1.2"/></svg>
+                    {% endif %}
+                </button>
+            </form>
+            <span style="font-size:0.8rem;{% if sub.is_done %}text-decoration:line-through;color:var(--text-dim){% else %}color:var(--text){% endif %}">{{ sub.title }}</span>
+            {% if role in ['admin', 'editor'] %}
+            <form method="POST" action="{{ url_for('tasks.delete_subtask', subtask_id=sub.id) }}" style="display:inline;margin-left:auto">
+                <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:10px" title="Delete">&times;</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% if role in ['admin', 'editor'] %}
+        <form method="POST" action="{{ url_for('tasks.add_subtask', task_id=task.id) }}" style="display:flex;gap:8px;margin-top:8px">
+            <input type="text" name="title" placeholder="Add subtask..." required style="flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:0.8rem">
+            <button type="submit" class="btn btn-primary btn-xs">+</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Time Tracking -->
+    <div class="section-header" style="margin-top:24px">TIME TRACKING</div>
+    <div style="max-width:600px">
+        {% if time_entries %}
+        <div style="margin-bottom:8px">
+            {% set total_secs = time_entries|map(attribute='duration_seconds')|sum %}
+            <span class="mono-label" style="color:var(--text-muted)">Total: {{ (total_secs / 3600)|round(1) }}h</span>
+        </div>
+        {% for entry in time_entries[:10] %}
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.75rem;color:var(--text-muted);border-bottom:1px solid var(--border-subtle)">
+            <span style="font-family:var(--mono)">{{ entry.user.username }}</span>
+            <span>{{ entry.started_at.strftime('%b %d %H:%M') }}</span>
+            {% if entry.ended_at %}
+            <span>→ {{ entry.ended_at.strftime('%H:%M') }}</span>
+            <span class="mono-label">{{ (entry.duration_seconds / 3600)|round(1) }}h</span>
+            {% else %}
+            <span style="color:var(--primary)">running</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="color:var(--text-dim);font-size:0.75rem">No time logged yet</div>
+        {% endif %}
+    </div>
+
     {% if attachments %}
     <div class="section-header" style="margin-top:24px">ATTACHMENTS <span style="color:var(--text-dim)">({{ attachments|length }})</span></div>
     <div class="attachment-list" style="max-width:600px">
@@ -158,4 +217,78 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+let timerRunning = false;
+let timerEntryId = null;
+let timerInterval = null;
+let timerSeconds = 0;
+let inactivityTimeout = null;
+
+function toggleTimer() {
+    if (timerRunning) {
+        stopTimer();
+    } else {
+        startTimer();
+    }
+}
+
+function startTimer() {
+    fetch('/time/start/{{ task.id }}', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+        timerRunning = true;
+        timerEntryId = data.id;
+        timerSeconds = 0;
+        document.getElementById('timer-label').textContent = 'Stop';
+        document.getElementById('timer-btn').style.color = 'var(--primary)';
+        timerInterval = setInterval(function() { timerSeconds++; updateTimerDisplay(); }, 1000);
+        resetInactivity();
+    });
+}
+
+function stopTimer() {
+    if (!timerEntryId) return;
+    fetch('/time/stop/' + timerEntryId, {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+        timerRunning = false;
+        timerEntryId = null;
+        clearInterval(timerInterval);
+        clearTimeout(inactivityTimeout);
+        document.getElementById('timer-label').textContent = 'Timer';
+        document.getElementById('timer-btn').style.color = '';
+        location.reload();
+    });
+}
+
+function updateTimerDisplay() {
+    var h = Math.floor(timerSeconds / 3600);
+    var m = Math.floor((timerSeconds % 3600) / 60);
+    var s = timerSeconds % 60;
+    document.getElementById('timer-label').textContent =
+        (h > 0 ? h + 'h ' : '') + m + 'm ' + s + 's';
+}
+
+function resetInactivity() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(function() {
+        if (timerRunning) { pauseTimer(); }
+    }, 3600000);
+}
+
+function pauseTimer() {
+    if (!timerEntryId) return;
+    fetch('/time/pause/' + timerEntryId, {method: 'POST'});
+    timerRunning = false;
+    clearInterval(timerInterval);
+    document.getElementById('timer-label').textContent = 'Paused';
+    document.getElementById('timer-btn').style.color = 'var(--warning)';
+}
+
+document.addEventListener('mousemove', function() { if (timerRunning) resetInactivity(); });
+document.addEventListener('keypress', function() { if (timerRunning) resetInactivity(); });
+document.addEventListener('click', function() { if (timerRunning) resetInactivity(); });
+document.addEventListener('scroll', function() { if (timerRunning) resetInactivity(); });
+</script>
 {% endblock %}

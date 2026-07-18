@@ -86,6 +86,71 @@ def _seed_admin(app):
             logger.info("Admin user '%s' already exists, skipping.", admin_username)
 
 
+def _check_aging_tasks(app):
+    from datetime import date, timedelta, datetime, timezone
+    from .models import db, Task, Project, ProjectAgingSetting, TaskAgingLog, Notification, User
+    from .webhooks import fire_webhook
+
+    settings = ProjectAgingSetting.query.filter_by(enabled=True).all()
+    for setting in settings:
+        threshold = setting.days_threshold
+        cutoff = date.today() - timedelta(days=threshold)
+
+        tasks = Task.query.filter(
+            Task.project_id == setting.project_id,
+            Task.status != "done",
+            Task.created_at <= datetime.combine(cutoff, datetime.min.time()).replace(tzinfo=timezone.utc),
+        ).all()
+
+        for task in tasks:
+            existing = TaskAgingLog.query.filter_by(task_id=task.id).first()
+            if existing:
+                days_stuck = (date.today() - existing.notified_at.date()).days if existing.notified_at else 0
+                if days_stuck < threshold:
+                    continue
+
+            days_stuck = (date.today() - task.created_at.date()).days if task.created_at else 0
+            log = TaskAgingLog(task_id=task.id, status_at_check=task.status, days_stuck=days_stuck)
+            db.session.add(log)
+
+            if setting.notify_assignee and task.assignee_id:
+                notif = Notification(
+                    user_id=task.assignee_id,
+                    title=f"Task aging: {task.title}",
+                    body=f"Has been in '{task.status}' for {days_stuck} days",
+                    url=f"/tasks/{task.id}",
+                )
+                db.session.add(notif)
+
+            if setting.notify_owner and setting.project:
+                owner_id = setting.project.created_by
+                if owner_id and owner_id != task.assignee_id:
+                    notif = Notification(
+                        user_id=owner_id,
+                        title=f"Aging task: {task.title}",
+                        body=f"In project '{setting.project.name}' for {days_stuck} days",
+                        url=f"/tasks/{task.id}",
+                    )
+                    db.session.add(notif)
+
+            if setting.notify_webhook and setting.webhook_url:
+                try:
+                    import requests as req
+                    payload = {
+                        "event": "task.aging",
+                        "task_id": task.id,
+                        "title": task.title,
+                        "status": task.status,
+                        "days_stuck": days_stuck,
+                        "project": setting.project.name if setting.project else "",
+                    }
+                    req.post(setting.webhook_url, json=payload, timeout=10)
+                except Exception:
+                    pass
+
+        db.session.commit()
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -107,6 +172,10 @@ def create_app():
     from .global_gantt import global_gantt_bp
     from .reports import reports_bp
     from .templates_mod import templates_bp
+    from .api import api_bp
+    from .timetrack import timetrack_bp
+    from .assets import assets_bp
+    from .ical_export import ical_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(projects_bp)
@@ -121,6 +190,10 @@ def create_app():
     app.register_blueprint(global_gantt_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(templates_bp)
+    app.register_blueprint(api_bp)
+    app.register_blueprint(timetrack_bp)
+    app.register_blueprint(assets_bp)
+    app.register_blueprint(ical_bp)
 
     @app.route("/")
     def index():
@@ -168,5 +241,6 @@ def create_app():
             db.session.rollback()
         _ensure_columns(app)
         _seed_admin(app)
+        _check_aging_tasks(app)
 
     return app

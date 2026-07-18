@@ -10,6 +10,9 @@
         <a href="{{ url_for('gantt.view', project_id=project.id) }}" class="btn btn-ghost btn-sm">Timeline</a>
         <a href="{{ url_for('recurring.list_recurring', project_id=project.id) }}" class="btn btn-ghost btn-sm">Recurring</a>
         <a href="{{ url_for('projects.project_activity', project_id=project.id) }}" class="btn btn-ghost btn-sm">Activity</a>
+        {% if role == 'owner' or role == 'admin' %}
+        <a href="{{ url_for('projects.project_aging', project_id=project.id) }}" class="btn btn-ghost btn-sm">Aging</a>
+        {% endif %}
         {% if role == 'admin' %}
         <a href="{{ url_for('projects.edit_project', project_id=project.id) }}" class="btn btn-ghost btn-sm">Edit</a>
         <a href="{{ url_for('projects.project_permissions', project_id=project.id) }}" class="btn btn-ghost btn-sm">Permissions</a>
