@@ -289,7 +289,7 @@ function setTheme(theme) {
         { label: 'Templates', url: '{{ url_for("templates.index") }}', group: 'Pages', icon: 'template' },
         { label: 'Assets', url: '{{ url_for("assets.index") }}', group: 'Pages', icon: 'asset' },
         { label: 'Recurring', url: '{{ url_for("recurring.list_recurring_all") }}', group: 'Pages', icon: 'recur' },
-        { label: 'Search', url: '{{ url_for("search.search") }}', group: 'Pages', icon: 'search' },
+        { label: 'Search', url: '{{ url_for("search.index") }}', group: 'Pages', icon: 'search' },
         { label: 'Profile', url: '{{ url_for("auth.profile") }}', group: 'Pages', icon: 'user' },
         {% if current_user.can_manage_all_projects() %}
         { label: 'Manage Users', url: '{{ url_for("auth.admin_users") }}', group: 'Admin', icon: 'user' },
