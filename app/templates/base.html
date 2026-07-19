@@ -70,7 +70,7 @@
                 </svg>
                 <span>Assets</span>
             </a>
-            <a href="{{ url_for('recurring.list_recurring') }}" class="sidebar-nav-item {% if request.endpoint and 'recurring' in request.endpoint %}active{% endif %}">
+            <a href="{{ url_for('recurring.list_recurring_all') }}" class="sidebar-nav-item {% if request.endpoint == 'recurring.list_recurring_all' %}active{% endif %}">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path d="M11 4A5 5 0 103 7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
                     <path d="M3 2v3h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
