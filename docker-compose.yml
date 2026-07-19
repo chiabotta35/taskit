@@ -1,13 +1,9 @@
 services:
   web:
-    build:
-      context: .
-      args:
-        TASKIT_VERSION: "1.0.0"
     image: ghcr.io/chiabotta35/taskit:1.0.0
     container_name: taskit
     restart: unless-stopped
-    pull_policy: missing
+    pull_policy: always
     ports:
       - "5000:5000"
     volumes:
