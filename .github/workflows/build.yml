@@ -2,12 +2,11 @@ name: Build and Push
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g. v0.2.0)'
+        description: 'Version tag (e.g. v1.0.0)'
         required: true
 
 env:
@@ -34,9 +33,14 @@ jobs:
             echo "version=dev" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Lowercase repo name
-        id: repo
-        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/chiabotta35/taskit
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -55,8 +59,6 @@ jobs:
           push: true
           build-args: |
             TASKIT_VERSION=${{ steps.version.outputs.version }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}:latest
-            ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
