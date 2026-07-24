@@ -264,7 +264,9 @@ def update_status(task_id):
         return {"error": "not found"}, 404
     if not current_user.has_project_permission(task.project_id, "editor"):
         return {"error": "forbidden"}, 403
-    new_status = request.form.get("status") or request.json.get("status")
+    new_status = request.form.get("status") if request.form else None
+    if not new_status and request.is_json:
+        new_status = request.json.get("status")
     if new_status not in ["todo", "in_progress", "review", "done"]:
         return {"error": "invalid status"}, 400
     old_status = task.status
@@ -364,6 +366,7 @@ def bulk_action():
         flash("No tasks found.", "warning")
         return redirect(url_for("projects.list_projects"))
     project_id = tasks[0].project_id
+    tasks = [t for t in tasks if t.project_id == project_id]
     if action == "delete":
         for t in tasks:
             if current_user.has_project_permission(t.project_id, "admin"):
@@ -427,6 +430,10 @@ def toggle_subtask(subtask_id):
     if not sub:
         flash("Not found.", "danger")
         return redirect(url_for("dashboard.index"))
+    task = db.session.get(Task, sub.task_id)
+    if not task or not current_user.has_project_permission(task.project_id, "editor"):
+        flash("Access denied.", "danger")
+        return redirect(url_for("dashboard.index"))
     sub.is_done = not sub.is_done
     db.session.commit()
     return redirect(url_for("tasks.detail_task", task_id=sub.task_id))
@@ -439,6 +446,10 @@ def delete_subtask(subtask_id):
     sub = db.session.get(Subtask, subtask_id)
     if not sub:
         flash("Not found.", "danger")
+        return redirect(url_for("dashboard.index"))
+    task = db.session.get(Task, sub.task_id)
+    if not task or not current_user.has_project_permission(task.project_id, "editor"):
+        flash("Access denied.", "danger")
         return redirect(url_for("dashboard.index"))
     task_id = sub.task_id
     db.session.delete(sub)

@@ -1,9 +1,11 @@
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 import threading
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import requests
 
@@ -12,6 +14,46 @@ from .models import db, Webhook
 logger = logging.getLogger(__name__)
 
 TIMEOUT = 10
+
+BLOCKED_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+]
+
+
+def is_url_safe(url):
+    """Reject webhook URLs pointing to private/internal networks (SSRF protection)."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        addr = ipaddress.ip_address(hostname)
+        for net in BLOCKED_NETWORKS:
+            if addr in net:
+                return False
+        return True
+    except ValueError:
+        # hostname is not an IP, try resolving
+        import socket
+        try:
+            resolved = socket.getaddrinfo(hostname, None)
+            for family, _, _, _, sockaddr in resolved:
+                addr = ipaddress.ip_address(sockaddr[0])
+                for net in BLOCKED_NETWORKS:
+                    if addr in net:
+                        return False
+            return True
+        except (socket.gaierror, TypeError):
+            return False
 
 
 def _sign_payload(payload_bytes, secret):
@@ -48,6 +90,9 @@ def fire_webhook(event, payload):
     webhooks = Webhook.query.filter_by(is_active=True).all()
     for wh in webhooks:
         if event in wh.get_events_list():
+            if not is_url_safe(wh.url):
+                logger.warning("Webhook %s blocked: URL %s points to internal network", wh.id, wh.url)
+                continue
             t = threading.Thread(target=_send_one, args=(wh, event, payload), daemon=True)
             t.start()
 

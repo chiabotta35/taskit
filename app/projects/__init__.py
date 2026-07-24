@@ -306,8 +306,8 @@ def project_aging(project_id):
     if not project:
         flash("Project not found.", "danger")
         return redirect(url_for("projects.list_projects"))
-    if not current_user.has_project_permission(project_id, "owner"):
-        flash("Only project owners can configure aging.", "danger")
+    if not current_user.has_project_permission(project_id, "admin"):
+        flash("Only project admins can configure aging.", "danger")
         return redirect(url_for("projects.detail_project", project_id=project_id))
     from ..models import ProjectAgingSetting
     setting = ProjectAgingSetting.query.filter_by(project_id=project_id).first()

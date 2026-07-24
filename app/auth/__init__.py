@@ -1,5 +1,7 @@
 import hashlib
+import hmac
 import json
+import re
 import secrets
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
@@ -12,8 +14,29 @@ from ..models import (
     db, User, Group, GroupMembership,
     SsoSettings, SsoAdminPermissions,
 )
+from .. import limiter
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+
+def _safe_redirect(target, default="dashboard.index"):
+    """Redirect only to same-origin relative paths. Prevents open redirect."""
+    if target and target.startswith("/") and not target.startswith("//"):
+        return redirect(target)
+    return redirect(url_for(default))
+
+
+def _validate_password_strength(password):
+    """Check password meets minimum strength requirements."""
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters."
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter."
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter."
+    if not re.search(r"[0-9]", password):
+        return False, "Password must contain at least one digit."
+    return True, ""
 
 
 # ---------------------------------------------------------------------------
@@ -36,12 +59,17 @@ class RegisterForm(FlaskForm):
     )
     email = StringField("Email", validators=[DataRequired(), Email()])
     password = PasswordField(
-        "Password", validators=[DataRequired(), Length(min=6)]
+        "Password", validators=[DataRequired(), Length(min=8)]
     )
     confirm_password = PasswordField(
         "Confirm Password",
         validators=[DataRequired(), EqualTo("password", message="Passwords must match")],
     )
+
+    def validate_password(self, field):
+        ok, msg = _validate_password_strength(field.data)
+        if not ok:
+            raise ValidationError(msg)
 
     def validate_username(self, field):
         if User.query.filter_by(username=field.data).first():
@@ -69,8 +97,14 @@ class GroupForm(FlaskForm):
 class ProfileForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email()])
     current_password = PasswordField("Current Password")
-    new_password = PasswordField("New Password", validators=[Length(min=6)])
+    new_password = PasswordField("New Password", validators=[Length(min=8)])
     confirm_password = PasswordField("Confirm Password", validators=[EqualTo("new_password", message="Passwords must match")])
+
+    def validate_new_password(self, field):
+        if field.data:
+            ok, msg = _validate_password_strength(field.data)
+            if not ok:
+                raise ValidationError(msg)
 
 
 class SsoSettingsForm(FlaskForm):
@@ -106,6 +140,7 @@ class SsoAdminPermsForm(FlaskForm):
 # ---------------------------------------------------------------------------
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("10/minute")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard.index"))
@@ -115,7 +150,7 @@ def login():
         if user and user.password_hash and user.check_password(form.password.data) and user.is_active_user:
             login_user(user, remember=form.remember.data)
             next_page = request.args.get("next")
-            return redirect(next_page or url_for("dashboard.index"))
+            return _safe_redirect(next_page)
         flash("Invalid username or password.", "danger")
     return render_template("auth/login.html", form=form)
 
@@ -123,7 +158,13 @@ auth_bp._csrf_exempt = [login]
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
+@limiter.limit("5/minute")
 def register():
+    sso_settings = SsoSettings.query.get(1)
+    sso_enabled = sso_settings and sso_settings.enabled
+    if not sso_enabled:
+        flash("Registration is disabled. Contact an administrator.", "warning")
+        return redirect(url_for("auth.login"))
     form = RegisterForm()
     if form.validate_on_submit():
         user = User(
@@ -262,6 +303,7 @@ def _check_sso_admin(user, oidc_groups, sso_settings):
 
 
 @auth_bp.route("/sso/login")
+@limiter.limit("10/minute")
 def sso_login():
     sso_settings = SsoSettings.query.get(1)
     if not sso_settings or not sso_settings.enabled:
@@ -287,10 +329,10 @@ def sso_callback():
         flash("SSO is not configured.", "warning")
         return redirect(url_for("auth.login"))
 
-    # Verify state
+    # Verify state (timing-safe comparison)
     expected_state = session.pop("oidc_state", None)
     received_state = request.args.get("state")
-    if not expected_state or expected_state != received_state:
+    if not expected_state or not received_state or not hmac.compare_digest(expected_state, received_state):
         flash("SSO login failed: invalid state parameter.", "danger")
         return redirect(url_for("auth.login"))
 
@@ -384,7 +426,7 @@ def sso_callback():
     db.session.commit()
     login_user(user, remember=True)
     next_page = request.args.get("next")
-    return redirect(next_page or url_for("dashboard.index"))
+    return _safe_redirect(next_page)
 
 
 # ---------------------------------------------------------------------------
@@ -406,7 +448,9 @@ def admin_users():
 @login_required
 def admin_edit_user(user_id):
     from .decorators import sso_admin_permission
-    if not current_user.can_manage_all_projects() and not (current_user.is_sso_admin and SsoAdminPermissions.get().manage_users):
+    is_local_admin = current_user.can_manage_all_projects()
+    is_sso_user_mgmt = current_user.is_sso_admin and SsoAdminPermissions.get().manage_users
+    if not is_local_admin and not is_sso_user_mgmt:
         flash("Access denied.", "danger")
         return redirect(url_for("projects.list_projects"))
     user = db.session.get(User, user_id)
@@ -417,11 +461,12 @@ def admin_edit_user(user_id):
     if form.validate_on_submit():
         user.username = form.username.data
         user.email = form.email.data
-        user.is_admin = form.is_admin.data
-        user.is_owner = form.is_owner.data
         user.is_active_user = form.is_active_user.data
         if form.password.data:
             user.set_password(form.password.data)
+        if is_local_admin:
+            user.is_admin = form.is_admin.data
+            user.is_owner = form.is_owner.data
         db.session.commit()
         flash(f"User {user.username} updated.", "success")
         return redirect(url_for("auth.admin_users"))

@@ -7,9 +7,11 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, g
 from flask_login import login_required, current_user
 
+from .. import limiter
 from ..models import (
     db, User, Project, Task, Comment, ApiToken, TaskTemplate,
     ProjectPermission, Subtask, TimeEntry, Asset, TaskType, ProjectStatus,
+    TASK_STATUSES, TASK_PRIORITIES,
 )
 
 api_bp = Blueprint("api", __name__, url_prefix="/api/v1")
@@ -34,6 +36,8 @@ def require_api_auth(f):
         token = ApiToken.query.filter_by(token_hash=token_hash, is_active=True).first()
         if not token:
             return jsonify({"error": "Invalid or revoked token"}), 401
+        if not token.user or not token.user.is_active_user:
+            return jsonify({"error": "Account is disabled"}), 401
         token.last_used_at = datetime.now(timezone.utc)
         db.session.commit()
         g.api_user = token.user
@@ -76,6 +80,7 @@ def _json_project(project):
 
 @api_bp.route("/tokens", methods=["POST"])
 @login_required
+@limiter.limit("5/minute")
 def create_token():
     data = request.get_json() or {}
     name = data.get("name", "API Token")
@@ -208,6 +213,15 @@ def update_task(task_id):
     if not g.api_user.has_project_permission(task.project_id, "editor"):
         return jsonify({"error": "Access denied"}), 403
     data = request.get_json() or {}
+    if "status" in data and data["status"] not in TASK_STATUSES:
+        return jsonify({"error": f"Invalid status. Must be one of: {', '.join(TASK_STATUSES)}"}), 400
+    if "priority" in data and data["priority"] not in TASK_PRIORITIES:
+        return jsonify({"error": f"Invalid priority. Must be one of: {', '.join(TASK_PRIORITIES)}"}), 400
+    if "assignee_id" in data:
+        aid = data["assignee_id"]
+        if aid is not None:
+            if not isinstance(aid, int) or not db.session.get(User, aid):
+                return jsonify({"error": "Invalid assignee_id"}), 400
     for field in ["title", "description", "status", "priority", "assignee_id"]:
         if field in data:
             setattr(task, field, data[field])
@@ -282,6 +296,9 @@ def delete_subtask(subtask_id):
     sub = db.session.get(Subtask, subtask_id)
     if not sub:
         return jsonify({"error": "Not found"}), 404
+    task = db.session.get(Task, sub.task_id)
+    if not task or not g.api_user.has_project_permission(task.project_id, "editor"):
+        return jsonify({"error": "Access denied"}), 403
     db.session.delete(sub)
     db.session.commit()
     return jsonify({"message": "Deleted"})
@@ -331,6 +348,9 @@ def list_users():
 @api_bp.route("/tasks/<int:task_id>/time", methods=["GET"])
 @require_api_auth
 def list_time_entries(task_id):
+    task = db.session.get(Task, task_id)
+    if not task or not g.api_user.has_project_permission(task.project_id, "viewer"):
+        return jsonify({"error": "Access denied"}), 403
     entries = TimeEntry.query.filter_by(task_id=task_id).order_by(TimeEntry.started_at.desc()).all()
     return jsonify([{
         "id": e.id, "user_id": e.user_id, "duration_seconds": e.duration_seconds,

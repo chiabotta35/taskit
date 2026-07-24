@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, BooleanField, SelectField, PasswordField
-from wtforms.validators import DataRequired, URL, Optional
+from wtforms.validators import DataRequired, URL, Optional, ValidationError
 
 from ..models import db, Webhook, WEBHOOK_EVENTS
 
@@ -18,6 +18,11 @@ class WebhookForm(FlaskForm):
     url = StringField("URL", validators=[DataRequired(), URL()])
     secret = PasswordField("Secret (optional)", validators=[Optional()])
     is_active = BooleanField("Active", default=True)
+
+    def validate_url(self, field):
+        from ..webhooks import is_url_safe
+        if not is_url_safe(field.data):
+            raise ValidationError("URL points to a private/internal network. Only public URLs are allowed.")
 
 
 def _require_admin():

@@ -42,14 +42,15 @@ def index():
             task_num = int(q)
         if task_num is not None:
             query = query.filter(or_(
-                Task.title.ilike(f"%{q}%"),
-                Task.description.ilike(f"%{q}%"),
+                Task.title.ilike(f"%{q.replace('%', '%%').replace('_', '\\_')}%"),
+                Task.description.ilike(f"%{q.replace('%', '%%').replace('_', '\\_')}%"),
                 Task.task_number == task_num,
             ))
         else:
+            escaped = q.replace("%", "%%").replace("_", "\\_")
             query = query.filter(or_(
-                Task.title.ilike(f"%{q}%"),
-                Task.description.ilike(f"%{q}%"),
+                Task.title.ilike(f"%{escaped}%"),
+                Task.description.ilike(f"%{escaped}%"),
             ))
 
         if status:

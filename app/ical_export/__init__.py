@@ -21,7 +21,7 @@ def _visible_project_ids(user):
 
 
 def _escape_ics(text):
-    return text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+    return text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n").replace('"', '\\"')
 
 
 @ical_bp.route("/tasks.ics")

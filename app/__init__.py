@@ -1,10 +1,12 @@
 import os
 import logging
 from pathlib import Path
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, request, make_response
 from flask_login import LoginManager, current_user
 from datetime import date
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
@@ -21,6 +23,8 @@ VERSION = _raw_version.lstrip("v")
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message_category = "warning"
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 @login_manager.user_loader
@@ -140,6 +144,9 @@ def _check_aging_tasks(app):
 
             if setting.notify_webhook and setting.webhook_url:
                 try:
+                    from .webhooks import is_url_safe
+                    if not is_url_safe(setting.webhook_url):
+                        continue
                     import requests as req
                     payload = {
                         "event": "task.aging",
@@ -159,11 +166,23 @@ def _check_aging_tasks(app):
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    Config.init_app(app)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     db.init_app(app)
     login_manager.init_app(app)
+    limiter.init_app(app)
     Migrate(app, db)
+
+    @app.after_request
+    def set_security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if request.is_secure:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
 
     from .auth import auth_bp
     from .projects import projects_bp
