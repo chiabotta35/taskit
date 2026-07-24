@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import logging
 import re
 import secrets
 
@@ -15,6 +16,8 @@ from ..models import (
     SsoSettings, SsoAdminPermissions,
 )
 from .. import limiter, csrf
+
+logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -194,15 +197,16 @@ def logout():
 def profile():
     form = ProfileForm(obj=current_user)
     if form.validate_on_submit():
-        if form.current_password.data and current_user.password_hash and not current_user.check_password(form.current_password.data):
-            flash("Current password is incorrect.", "error")
-        else:
-            current_user.email = form.email.data
-            if form.new_password.data:
-                current_user.set_password(form.new_password.data)
-            db.session.commit()
-            flash("Profile updated.", "success")
-            return redirect(url_for("auth.profile"))
+        if current_user.password_hash:
+            if not form.current_password.data or not current_user.check_password(form.current_password.data):
+                flash("Current password is required to update profile.", "error")
+                return render_template("auth/profile.html", form=form)
+        current_user.email = form.email.data
+        if form.new_password.data:
+            current_user.set_password(form.new_password.data)
+        db.session.commit()
+        flash("Profile updated.", "success")
+        return redirect(url_for("auth.profile"))
     return render_template("auth/profile.html", form=form)
 
 
@@ -315,7 +319,8 @@ def sso_login():
     try:
         client = _get_oidc_provider(sso_settings)
     except Exception as e:
-        flash(f"SSO configuration error: {e}", "danger")
+        logger.exception("SSO configuration error")
+        flash("SSO configuration error. Check server logs for details.", "danger")
         return redirect(url_for("auth.login"))
 
     redirect_uri = url_for("auth.sso_callback", _external=True)
@@ -345,7 +350,8 @@ def sso_callback():
         if not userinfo:
             userinfo = client.userinfo(token=token)
     except Exception as e:
-        flash(f"SSO authentication failed: {e}", "danger")
+        logger.exception("SSO authentication error")
+        flash("SSO authentication failed. Check server logs for details.", "danger")
         return redirect(url_for("auth.login"))
 
     sub = userinfo.get("sub")

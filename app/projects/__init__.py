@@ -313,7 +313,11 @@ def project_aging(project_id):
     setting = ProjectAgingSetting.query.filter_by(project_id=project_id).first()
     if request.method == "POST":
         enabled = request.form.get("enabled") == "on"
-        days = int(request.form.get("days_threshold", 3))
+        try:
+            days = int(request.form.get("days_threshold", 3))
+            days = max(1, min(days, 365))
+        except (ValueError, TypeError):
+            days = 3
         webhook_url = request.form.get("webhook_url", "").strip() or None
         notify_assignee = request.form.get("notify_assignee") == "on"
         notify_owner = request.form.get("notify_owner") == "on"

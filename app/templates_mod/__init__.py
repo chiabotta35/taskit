@@ -90,7 +90,7 @@ def delete(template_id):
     return redirect(url_for("templates.index"))
 
 
-@templates_bp.route("/<int:template_id>/use/<int:project_id>")
+@templates_bp.route("/<int:template_id>/use/<int:project_id>", methods=["POST"])
 @login_required
 def use_template(template_id, project_id):
     tmpl = db.session.get(TaskTemplate, template_id)

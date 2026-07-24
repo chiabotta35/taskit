@@ -43,7 +43,9 @@
                                 {% for p in sidebar_projects %}
                                 {% set role = current_user.get_highest_project_role(p.id) %}
                                 {% if role in ['admin', 'editor'] %}
-                                <a href="{{ url_for('templates.use_template', template_id=tmpl.id, project_id=p.id) }}" class="settings-panel-link">{{ p.name }}</a>
+                                <form method="POST" action="{{ url_for('templates.use_template', template_id=tmpl.id, project_id=p.id) }}" style="display:block">
+                                    <button type="submit" class="settings-panel-link" style="background:none;border:none;padding:0;cursor:pointer;width:100%;text-align:left">{{ p.name }}</button>
+                                </form>
                                 {% endif %}
                                 {% endfor %}
                             </div>

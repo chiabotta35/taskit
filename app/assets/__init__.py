@@ -23,6 +23,14 @@ def _can_manage_assets():
     ).count() > 0
 
 
+def _can_manage_asset(asset):
+    if current_user.can_manage_all_projects():
+        return True
+    if asset.project_id is None:
+        return _can_manage_assets()
+    return current_user.has_project_permission(asset.project_id, "admin")
+
+
 class AssetForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     asset_type = SelectField("Type", choices=[(t, t.title()) for t in ASSET_TYPES])
@@ -107,12 +115,12 @@ def create():
 @assets_bp.route("/<int:asset_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit(asset_id):
-    if not _can_manage_assets():
-        flash("Access denied.", "danger")
-        return redirect(url_for("assets.index"))
     asset = db.session.get(Asset, asset_id)
     if not asset:
         flash("Asset not found.", "danger")
+        return redirect(url_for("assets.index"))
+    if not _can_manage_asset(asset):
+        flash("Access denied.", "danger")
         return redirect(url_for("assets.index"))
     form = AssetForm(obj=asset)
     form.project_id.choices = _project_choices()
@@ -127,12 +135,12 @@ def edit(asset_id):
 @assets_bp.route("/<int:asset_id>/delete", methods=["POST"])
 @login_required
 def delete(asset_id):
-    if not _can_manage_assets():
-        flash("Access denied.", "danger")
-        return redirect(url_for("assets.index"))
     asset = db.session.get(Asset, asset_id)
     if not asset:
         flash("Asset not found.", "danger")
+        return redirect(url_for("assets.index"))
+    if not _can_manage_asset(asset):
+        flash("Access denied.", "danger")
         return redirect(url_for("assets.index"))
     name = asset.name
     db.session.delete(asset)

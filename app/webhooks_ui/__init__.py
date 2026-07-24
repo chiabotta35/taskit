@@ -21,7 +21,8 @@ class WebhookForm(FlaskForm):
 
     def validate_url(self, field):
         from ..webhooks import is_url_safe
-        if not is_url_safe(field.data):
+        safe, _ = is_url_safe(field.data)
+        if not safe:
             raise ValidationError("URL points to a private/internal network. Only public URLs are allowed.")
 
 

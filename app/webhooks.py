@@ -30,39 +30,43 @@ BLOCKED_NETWORKS = [
 
 
 def is_url_safe(url):
-    """Reject webhook URLs pointing to private/internal networks (SSRF protection)."""
+    """Reject webhook URLs pointing to private/internal networks (SSRF protection).
+
+    Returns (safe, resolved_ip) tuple. resolved_ip is the checked IP to use for the request.
+    """
+    import socket
     try:
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
-            return False
+            return False, None
         hostname = parsed.hostname
         if not hostname:
-            return False
-        addr = ipaddress.ip_address(hostname)
-        for net in BLOCKED_NETWORKS:
-            if addr in net:
-                return False
-        return True
-    except ValueError:
-        # hostname is not an IP, try resolving
-        import socket
+            return False, None
         try:
+            addr = ipaddress.ip_address(hostname)
+            for net in BLOCKED_NETWORKS:
+                if addr in net:
+                    return False, None
+            return True, str(addr)
+        except ValueError:
             resolved = socket.getaddrinfo(hostname, None)
             for family, _, _, _, sockaddr in resolved:
                 addr = ipaddress.ip_address(sockaddr[0])
                 for net in BLOCKED_NETWORKS:
                     if addr in net:
-                        return False
-            return True
-        except (socket.gaierror, TypeError):
-            return False
+                        return False, None
+            if resolved:
+                return True, resolved[0][4][0]
+            return False, None
+    except (socket.gaierror, TypeError):
+        return False, None
 
 
 def _sign_payload(payload_bytes, secret):
     return hmac.new(secret.encode(), payload_bytes, hashlib.sha256).hexdigest()
 
 
-def _send_one(webhook, event, payload):
+def _send_one(webhook, event, payload, resolved_ip=None):
     body = {
         "event": event,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -79,7 +83,15 @@ def _send_one(webhook, event, payload):
         headers["X-Webhook-Signature"] = _sign_payload(body_bytes, webhook.secret)
 
     try:
-        resp = requests.post(webhook.url, data=body_bytes, headers=headers, timeout=TIMEOUT)
+        parsed = urlparse(webhook.url)
+        if resolved_ip:
+            target_url = f"{parsed.scheme}://{resolved_ip}{parsed.path or '/'}"
+            if parsed.query:
+                target_url += f"?{parsed.query}"
+            headers["Host"] = parsed.hostname
+            resp = requests.post(target_url, data=body_bytes, headers=headers, timeout=TIMEOUT, verify=False)
+        else:
+            resp = requests.post(webhook.url, data=body_bytes, headers=headers, timeout=TIMEOUT)
         if resp.status_code >= 400:
             logger.warning("Webhook %s returned %s", webhook.id, resp.status_code)
         else:
@@ -92,10 +104,11 @@ def fire_webhook(event, payload):
     webhooks = Webhook.query.filter_by(is_active=True).all()
     for wh in webhooks:
         if event in wh.get_events_list():
-            if not is_url_safe(wh.url):
+            safe, resolved_ip = is_url_safe(wh.url)
+            if not safe:
                 logger.warning("Webhook %s blocked: URL %s points to internal network", wh.id, wh.url)
                 continue
-            t = threading.Thread(target=_send_one, args=(wh, event, payload), daemon=True)
+            t = threading.Thread(target=_send_one, args=(wh, event, payload, resolved_ip), daemon=True)
             t.start()
 
 
