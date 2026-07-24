@@ -11,7 +11,7 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
       - DATABASE_URL=sqlite:////app/data/taskit.db
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}

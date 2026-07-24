@@ -7,6 +7,7 @@ from datetime import date
 from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
@@ -26,6 +27,8 @@ login_manager.login_message_category = "warning"
 
 limiter = Limiter(key_func=get_remote_address)
 
+csrf = CSRFProtect()
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -37,6 +40,17 @@ def _ensure_columns(app):
     with app.app_context():
         from sqlalchemy import text, inspect
         inspector = inspect(db.engine)
+        allowed_tables = {"tasks", "projects", "users"}
+        allowed_col_names = {
+            "due_date", "task_number", "prefix", "color", "theme",
+            "oidc_sub", "auth_method", "oidc_groups_hash", "is_sso_admin",
+        }
+        allowed_col_types = {
+            "DATE", "INTEGER DEFAULT 0", "VARCHAR(10) DEFAULT ''",
+            "VARCHAR(30) DEFAULT '#00e676'", "VARCHAR(30) DEFAULT 'dark'",
+            "VARCHAR(255)", "VARCHAR(20) DEFAULT 'local'", "VARCHAR(64)",
+            "BOOLEAN DEFAULT 0",
+        }
         additions = {
             "tasks": [
                 ("due_date", "DATE"),
@@ -55,10 +69,14 @@ def _ensure_columns(app):
             ],
         }
         for table, cols in additions.items():
+            if table not in allowed_tables:
+                continue
             if table not in inspector.get_table_names():
                 continue
             existing = {c["name"] for c in inspector.get_columns(table)}
             for col_name, col_type in cols:
+                if col_name not in allowed_col_names or col_type not in allowed_col_types:
+                    continue
                 if col_name not in existing:
                     try:
                         db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"))
@@ -114,8 +132,8 @@ def _check_aging_tasks(app):
         for task in tasks:
             existing = TaskAgingLog.query.filter_by(task_id=task.id).first()
             if existing:
-                days_stuck = (date.today() - existing.notified_at.date()).days if existing.notified_at else 0
-                if days_stuck < threshold:
+                days_since = (date.today() - existing.notified_at.date()).days if existing.notified_at else 0
+                if days_since < 1:
                     continue
 
             days_stuck = (date.today() - task.created_at.date()).days if task.created_at else 0
@@ -144,10 +162,7 @@ def _check_aging_tasks(app):
 
             if setting.notify_webhook and setting.webhook_url:
                 try:
-                    from .webhooks import is_url_safe
-                    if not is_url_safe(setting.webhook_url):
-                        continue
-                    import requests as req
+                    from .webhooks import fire_webhook
                     payload = {
                         "event": "task.aging",
                         "task_id": task.id,
@@ -156,7 +171,7 @@ def _check_aging_tasks(app):
                         "days_stuck": days_stuck,
                         "project": setting.project.name if setting.project else "",
                     }
-                    req.post(setting.webhook_url, json=payload, timeout=10)
+                    fire_webhook("task.aging", payload)
                 except Exception:
                     pass
 
@@ -172,6 +187,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     limiter.init_app(app)
+    csrf.init_app(app)
     Migrate(app, db)
 
     @app.after_request
@@ -219,6 +235,8 @@ def create_app():
     app.register_blueprint(timetrack_bp)
     app.register_blueprint(assets_bp)
     app.register_blueprint(ical_bp)
+
+    csrf.exempt(api_bp)
 
     @app.route("/")
     def index():

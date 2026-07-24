@@ -58,7 +58,7 @@ def export_tasks():
             f"DTSTART;VALUE=DATE:{dtstart}",
             f"DTEND;VALUE=DATE:{dtend}",
             f"SUMMARY:{_escape_ics(summary)}",
-            f"DESCRIPTION:{desc}",
+            f"DESCRIPTION:{_escape_ics(desc)}",
             "END:VEVENT",
         ]
 

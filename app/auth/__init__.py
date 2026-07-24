@@ -14,7 +14,7 @@ from ..models import (
     db, User, Group, GroupMembership,
     SsoSettings, SsoAdminPermissions,
 )
-from .. import limiter
+from .. import limiter, csrf
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -141,6 +141,7 @@ class SsoAdminPermsForm(FlaskForm):
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("10/minute")
+@csrf.exempt
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard.index"))
@@ -154,16 +155,16 @@ def login():
         flash("Invalid username or password.", "danger")
     return render_template("auth/login.html", form=form)
 
-auth_bp._csrf_exempt = [login]
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 @limiter.limit("5/minute")
+@csrf.exempt
 def register():
     sso_settings = SsoSettings.query.get(1)
     sso_enabled = sso_settings and sso_settings.enabled
-    if not sso_enabled:
-        flash("Registration is disabled. Contact an administrator.", "warning")
+    if sso_enabled:
+        flash("Registration is disabled. Use SSO to sign in.", "warning")
         return redirect(url_for("auth.login"))
     form = RegisterForm()
     if form.validate_on_submit():
@@ -304,6 +305,7 @@ def _check_sso_admin(user, oidc_groups, sso_settings):
 
 @auth_bp.route("/sso/login")
 @limiter.limit("10/minute")
+@csrf.exempt
 def sso_login():
     sso_settings = SsoSettings.query.get(1)
     if not sso_settings or not sso_settings.enabled:
@@ -636,7 +638,8 @@ def admin_sso():
         sso_settings.enabled = form.enabled.data
         sso_settings.provider_name = form.provider_name.data or "Authentik"
         sso_settings.client_id = form.client_id.data or ""
-        sso_settings.client_secret = form.client_secret.data or ""
+        if form.client_secret.data:
+            sso_settings.client_secret = form.client_secret.data
         sso_settings.discovery_url = form.discovery_url.data or ""
         sso_settings.scopes = form.scopes.data or "openid email profile groups"
         sso_settings.group_claim = form.group_claim.data or "groups"

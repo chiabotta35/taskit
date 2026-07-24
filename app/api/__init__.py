@@ -76,6 +76,12 @@ def _json_project(project):
     }
 
 
+@api_bp.before_request
+@limiter.limit("60/minute")
+def api_rate_limit():
+    pass
+
+
 # ── Token Management ──
 
 @api_bp.route("/tokens", methods=["POST"])
@@ -183,8 +189,12 @@ def create_task(project_id):
         priority=data.get("priority", "medium"),
         assignee_id=data.get("assignee_id"),
         created_by=g.api_user.id,
-        due_date=datetime.fromisoformat(data["due_date"]).date() if data.get("due_date") else None,
     )
+    if data.get("due_date"):
+        try:
+            task.due_date = datetime.fromisoformat(data["due_date"]).date()
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid due_date format"}), 400
     db.session.add(task)
     db.session.commit()
     return jsonify(_json_task(task)), 201
@@ -226,7 +236,13 @@ def update_task(task_id):
         if field in data:
             setattr(task, field, data[field])
     if "due_date" in data:
-        task.due_date = datetime.fromisoformat(data["due_date"]).date() if data["due_date"] else None
+        if data["due_date"]:
+            try:
+                task.due_date = datetime.fromisoformat(data["due_date"]).date()
+            except (ValueError, TypeError):
+                return jsonify({"error": "Invalid due_date format"}), 400
+        else:
+            task.due_date = None
     db.session.commit()
     return jsonify(_json_task(task))
 
@@ -339,7 +355,19 @@ def create_comment(task_id):
 @api_bp.route("/users", methods=["GET"])
 @require_api_auth
 def list_users():
-    users = User.query.filter_by(is_active_user=True).order_by(User.username).all()
+    user = g.api_user
+    if user.can_manage_all_projects():
+        users = User.query.filter_by(is_active_user=True).order_by(User.username).all()
+    else:
+        ids = set()
+        for perm in ProjectPermission.query.filter(ProjectPermission.user_id == user.id).all():
+            ids.add(perm.user_id)
+        for m in user.group_memberships:
+            for perm in ProjectPermission.query.filter(ProjectPermission.group_id == m.group_id).all():
+                if perm.user_id:
+                    ids.add(perm.user_id)
+        ids.add(user.id)
+        users = User.query.filter(User.id.in_(ids), User.is_active_user == True).order_by(User.username).all()
     return jsonify([{"id": u.id, "username": u.username, "is_admin": u.is_admin} for u in users])
 
 

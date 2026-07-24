@@ -6,12 +6,21 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, DateField
 from wtforms.validators import DataRequired, Optional
 
-from ..models import db, Asset, Project
+from ..models import db, Asset, Project, ProjectPermission
 
 assets_bp = Blueprint("assets", __name__, url_prefix="/assets")
 
 ASSET_TYPES = ["server", "network", "storage", "hardware", "software", "license", "other"]
 ASSET_STATUSES = ["active", "inactive", "decommissioned", "maintenance"]
+
+
+def _can_manage_assets():
+    if current_user.can_manage_all_projects():
+        return True
+    return ProjectPermission.query.filter(
+        ProjectPermission.user_id == current_user.id,
+        ProjectPermission.permission_level.in_(["admin", "editor"]),
+    ).count() > 0
 
 
 class AssetForm(FlaskForm):
@@ -30,14 +39,37 @@ class AssetForm(FlaskForm):
 def _project_choices():
     if current_user.can_manage_all_projects():
         return [(None, "-- None --")] + [(p.id, p.name) for p in Project.query.order_by(Project.name).all()]
-    return [(None, "-- None --")]
+    ids = set()
+    for perm in ProjectPermission.query.filter(
+        ProjectPermission.user_id == current_user.id,
+        ProjectPermission.permission_level.in_(["admin", "editor"]),
+    ).all():
+        ids.add(perm.project_id)
+    projects = Project.query.filter(Project.id.in_(ids)).order_by(Project.name).all() if ids else []
+    return [(None, "-- None --")] + [(p.id, p.name) for p in projects]
+
+
+def _visible_assets():
+    if current_user.can_manage_all_projects():
+        return Asset.query
+    ids = set()
+    for perm in ProjectPermission.query.filter(
+        ProjectPermission.user_id == current_user.id,
+        ProjectPermission.permission_level.in_(["admin", "editor", "viewer"]),
+    ).all():
+        ids.add(perm.project_id)
+    if not ids:
+        return Asset.query.filter(Asset.id == -1)
+    return Asset.query.filter(
+        db.or_(Asset.project_id.in_(ids), Asset.project_id.is_(None))
+    )
 
 
 @assets_bp.route("/")
 @login_required
 def index():
     type_filter = request.args.get("type", "")
-    query = Asset.query
+    query = _visible_assets()
     if type_filter:
         query = query.filter_by(asset_type=type_filter)
     assets = query.order_by(Asset.name).all()
@@ -47,6 +79,9 @@ def index():
 @assets_bp.route("/create", methods=["GET", "POST"])
 @login_required
 def create():
+    if not _can_manage_assets():
+        flash("Access denied.", "danger")
+        return redirect(url_for("assets.index"))
     form = AssetForm()
     form.project_id.choices = _project_choices()
     if form.validate_on_submit():
@@ -72,6 +107,9 @@ def create():
 @assets_bp.route("/<int:asset_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit(asset_id):
+    if not _can_manage_assets():
+        flash("Access denied.", "danger")
+        return redirect(url_for("assets.index"))
     asset = db.session.get(Asset, asset_id)
     if not asset:
         flash("Asset not found.", "danger")
@@ -89,6 +127,9 @@ def edit(asset_id):
 @assets_bp.route("/<int:asset_id>/delete", methods=["POST"])
 @login_required
 def delete(asset_id):
+    if not _can_manage_assets():
+        flash("Access denied.", "danger")
+        return redirect(url_for("assets.index"))
     asset = db.session.get(Asset, asset_id)
     if not asset:
         flash("Asset not found.", "danger")

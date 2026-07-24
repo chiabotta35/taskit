@@ -153,6 +153,9 @@ def check_recurring(project_id):
     if not project:
         flash("Project not found.", "danger")
         return redirect(url_for("projects.list_projects"))
+    if not current_user.has_project_permission(project_id, "editor"):
+        flash("Access denied.", "danger")
+        return redirect(url_for("recurring.list_recurring", project_id=project_id))
     today = date.today()
     tasks = RecurringTask.query.filter_by(project_id=project_id, is_active=True).all()
     created_count = 0

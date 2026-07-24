@@ -368,36 +368,44 @@ def bulk_action():
     project_id = tasks[0].project_id
     tasks = [t for t in tasks if t.project_id == project_id]
     if action == "delete":
+        count = 0
         for t in tasks:
             if current_user.has_project_permission(t.project_id, "admin"):
                 log_activity(t.project_id, current_user.id, "deleted", "task", t.id, t.title)
                 db.session.delete(t)
+                count += 1
         db.session.commit()
-        flash(f"Deleted {len(tasks)} task(s).", "success")
+        flash(f"Deleted {count} task(s).", "success")
     elif action.startswith("status_"):
         new_status = action.replace("status_", "")
         if new_status in ["todo", "in_progress", "review", "done"]:
+            count = 0
             for t in tasks:
                 if current_user.has_project_permission(t.project_id, "editor"):
                     t.status = new_status
+                    count += 1
             db.session.commit()
-            flash(f"Updated {len(tasks)} task(s) to {new_status}.", "success")
+            flash(f"Updated {count} task(s) to {new_status}.", "success")
     elif action.startswith("priority_"):
         new_priority = action.replace("priority_", "")
         if new_priority in ["low", "medium", "high", "critical"]:
+            count = 0
             for t in tasks:
                 if current_user.has_project_permission(t.project_id, "editor"):
                     t.priority = new_priority
+                    count += 1
             db.session.commit()
-            flash(f"Updated {len(tasks)} task(s) to {new_priority}.", "success")
+            flash(f"Updated {count} task(s) to {new_priority}.", "success")
     elif action.startswith("assign_"):
         assignee = action.replace("assign_", "")
         assignee_id = int(assignee) if assignee != "none" else None
+        count = 0
         for t in tasks:
             if current_user.has_project_permission(t.project_id, "editor"):
                 t.assignee_id = assignee_id
+                count += 1
         db.session.commit()
-        flash(f"Reassigned {len(tasks)} task(s).", "success")
+        flash(f"Reassigned {count} task(s).", "success")
     return redirect(url_for("projects.detail_project", project_id=project_id))
 
 
